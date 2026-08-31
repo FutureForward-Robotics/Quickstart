@@ -9,10 +9,7 @@ import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Waypoint;
 import org.junit.jupiter.api.Test;
 
-/**
- * Assists are pure functions, so the interesting behaviour is tested on a laptop. The Drive
- * subsystem itself needs a Follower and is deliberately thin glue.
- */
+/** Assists are pure functions. Drive itself needs a Follower and is not covered here. */
 class AssistsTest {
 
     private static final double EPS = 1e-9;
@@ -26,7 +23,7 @@ class AssistsTest {
         DriveInput out = lock.apply(STRAIGHT, off);
 
         assertTrue(out.turn > 0, "robot is 20deg clockwise of target, so it must turn CCW");
-        assertEquals(0.6, out.forward, EPS, "assists must not touch translation here");
+        assertEquals(0.6, out.forward, EPS);
     }
 
     @Test
@@ -42,15 +39,15 @@ class AssistsTest {
     void headingLockOutputIsClamped() {
         DriveAssist lock = Assists.headingLock(0, 50.0);
         DriveInput out = lock.apply(STRAIGHT, new Pose(0, 0, Math.toRadians(-170)));
-        assertTrue(Math.abs(out.turn) <= 1.0, "must never command beyond full power");
+        assertTrue(Math.abs(out.turn) <= 1.0);
     }
 
     @Test
     void headingLockTakesTheShortWayAround() {
         DriveAssist lock = Assists.headingLock(-175, 1.0);
-        // Robot at +175deg. The short path is +10deg (CCW), not -350deg.
+        // Robot at +175deg; short path is +10deg, not -350deg.
         DriveInput out = lock.apply(STRAIGHT, new Pose(0, 0, Math.toRadians(175)));
-        assertTrue(out.turn > 0, "wrap must be handled, otherwise the robot spins the long way");
+        assertTrue(out.turn > 0, "must not spin the long way");
         assertEquals(Math.toRadians(10), out.turn, 1e-6);
     }
 
@@ -78,7 +75,7 @@ class AssistsTest {
     void slowNearFollowsTheAllianceMirror() {
         Waypoint goal = Waypoint.red("goal", 100, 100, 0);
         DriveAssist blue = Assists.slowNear(goal, Alliance.BLUE, 20.0, 0.25);
-        // Mirrored goal is x=44, so the red-side position is now far away and unscaled.
+        // Mirrored goal is x=44.
         assertEquals(0.6, blue.apply(STRAIGHT, new Pose(100, 100, 0)).forward, EPS);
         assertEquals(0.6 * 0.25, blue.apply(STRAIGHT, new Pose(44, 100, 0)).forward, 1e-9);
     }
@@ -88,7 +85,7 @@ class AssistsTest {
         Waypoint goal = Waypoint.red("goal", 100, 100, 0);
         DriveAssist pull = Assists.pullToward(goal, Alliance.RED, 1.0, 20.0, 0.3);
 
-        assertEquals(0.6, pull.apply(STRAIGHT, new Pose(0, 0, 0)).forward, EPS, "far away, untouched");
+        assertEquals(0.6, pull.apply(STRAIGHT, new Pose(0, 0, 0)).forward, EPS);
 
         DriveInput near = pull.apply(STRAIGHT, new Pose(90, 100, 0));
         assertEquals(0.6 + 0.3, near.forward, EPS, "10in error at kP=1 clamps to maxAuthority");
@@ -104,8 +101,8 @@ class AssistsTest {
                                 Assists.headingLock(0, 2.0).apply(STRAIGHT, new Pose(100, 100, 0)),
                                 new Pose(100, 100, 0));
 
-        assertEquals(0.3, out.forward, EPS, "translation halved by slowNear");
-        assertEquals(0.0, out.turn, EPS, "already on heading");
+        assertEquals(0.3, out.forward, EPS);
+        assertEquals(0.0, out.turn, EPS);
     }
 
     @Test

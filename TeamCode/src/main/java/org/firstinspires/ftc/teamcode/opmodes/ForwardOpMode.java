@@ -12,24 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Base class for every OpMode. Owns the three things that have no other correct home.
+ * Base OpMode. Owns Lynx bulk caching, gamepad polling and loop timing.
  *
- * <ol>
- *   <li><b>Lynx bulk caching.</b> Set to MANUAL once, cleared at the top of every loop before
- *       anything reads a sensor. Last season this lived inside {@code Drivetrain.periodic()}, which
- *       tied cache correctness to that one subsystem existing and being registered first.
- *   <li><b>{@code GamepadEx.readButtons()}.</b> Without a per-loop call, {@code wasJustPressed},
- *       {@code ButtonReader} and {@code TriggerReader} silently never update.
- *   <li><b>Loop timing.</b> See {@link LoopTimer}.
- * </ol>
+ * <p>{@link #initialize()} is final because the scheduler and subsystem registry must be reset
+ * before any subsystem is constructed. Put subsystems, default commands and bindings in {@link
+ * #configure()}.
  *
- * <p>{@link #initialize()} is final because the ordering matters: reset the scheduler <em>before</em>
- * any {@code SubsystemBase} is constructed (its constructor auto-registers), then configure caching,
- * then hand over to {@link #configure()}. Put your subsystems, default commands and bindings there.
- *
- * <p><b>Bulk caching caveat.</b> In MANUAL mode every sensor read inside one loop returns the same
- * cached value. That is the speedup. It also means a busy-wait for a sensor to change <em>within</em>
- * a single loop will never terminate -- put the wait in a command's {@code isFinished()} instead.
+ * <p>Bulk caching is MANUAL and cleared once per loop, so every sensor read within a loop returns
+ * the same value. Do not busy-wait on a sensor inside a single loop.
  */
 public abstract class ForwardOpMode extends CommandOpMode {
 
@@ -41,7 +31,6 @@ public abstract class ForwardOpMode extends CommandOpMode {
 
     @Override
     public final void initialize() {
-        // Before anything constructs a SubsystemBase, which would register with the old instance.
         CommandScheduler.getInstance().reset();
         ForwardSubsystem.resetRegistry();
 
@@ -57,7 +46,7 @@ public abstract class ForwardOpMode extends CommandOpMode {
         configure();
     }
 
-    /** Build subsystems, set default commands, bind buttons. Runs once, at init. */
+    /** Build subsystems, set default commands, bind buttons. */
     protected abstract void configure();
 
     @Override
@@ -65,14 +54,9 @@ public abstract class ForwardOpMode extends CommandOpMode {
         refreshInputs();
         ForwardSubsystem.senseAll();
         super.initialize_loop();
-        // Deliberately no actAll(): nothing on the robot moves before Play.
+        // No actAll(): nothing moves before Play.
     }
 
-    /**
-     * One loop: clear the cache, read inputs, let every subsystem sense, run the scheduler, then
-     * let every subsystem act. Commands therefore read a single consistent snapshot of the robot,
-     * and a target a command sets this loop is acted on this loop.
-     */
     @Override
     public void run() {
         refreshInputs();
@@ -81,10 +65,6 @@ public abstract class ForwardOpMode extends CommandOpMode {
         ForwardSubsystem.actAll();
     }
 
-    /**
-     * Cache clear and input read, before the scheduler touches anything. Runs in init as well as
-     * during the match so init-time button reads (alliance pickers, auto selectors) work.
-     */
     private void refreshInputs() {
         for (int i = 0; i < hubs.size(); i++) {
             hubs.get(i).clearBulkCache();
@@ -94,27 +74,15 @@ public abstract class ForwardOpMode extends CommandOpMode {
         loopTimer.tick(System.nanoTime());
     }
 
-    /** Seconds since the previous loop. Zero on the first. */
     protected double dtSeconds() {
         return loopTimer.dtSeconds();
     }
 
-    /** Loop rate, or zero if it cannot be measured yet. Worth putting on the driver station. */
     protected double loopHz() {
         return loopTimer.hz();
     }
 
-    /**
-     * Rate limiter for telemetry. Telemetry transmission is one of the more expensive things in the
-     * loop, so gate it:
-     *
-     * <pre>{@code
-     * if (telemetryDue(250)) {
-     *     telemetry.addData("loop", "%.0f Hz", loopHz());
-     *     telemetry.update();
-     * }
-     * }</pre>
-     */
+    /** Rate limiter for telemetry, which is expensive to transmit every loop. */
     protected boolean telemetryDue(long intervalMs) {
         return loopTimer.due(System.currentTimeMillis(), intervalMs);
     }

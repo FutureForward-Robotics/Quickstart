@@ -21,31 +21,19 @@ import java.util.List;
 import java.util.function.DoubleSupplier;
 
 /**
- * The drivetrain, wrapping Pedro's {@link Follower}.
+ * Drivetrain wrapping Pedro's {@link Follower}.
  *
- * <p><b>Three rules this class exists to enforce.</b>
+ * <p>Every motion command declares this subsystem as a requirement, calls {@code breakFollowing()}
+ * when interrupted, and carries a timeout.
  *
- * <ol>
- *   <li><b>Every motion command declares {@code this} as a requirement.</b> Neither last season's
- *       {@code commands/FollowPathCommand} nor SolversLib's {@code pedroCommand} package does. Without
- *       a requirement the scheduler cannot preempt the teleop default command, so the driver keeps
- *       feeding {@code setTeleOpDrive} while a path is running, and a stick nudge cannot cancel the
- *       path because nothing owns the drivetrain.
- *   <li><b>Every motion command stops the follower when interrupted.</b> Last season's
- *       {@code FollowPathCommand} has no {@code end(boolean)} at all, so a cancelled, raced or
- *       timed-out path leaves the robot driving. That is a runaway, not a bug.
- *   <li><b>{@code periodic()} is the only caller of {@code follower.update()}, and the teleop
- *       command's {@code initialize()} is the only caller of {@code startTeleopDrive()}.</b> One
- *       owner for the update, one owner for the mode switch.
- * </ol>
- *
- * <p>Mode handoff falls out of the scheduler for free: {@link #teleop} is the default command, any
- * path command preempts it, and when the path ends the scheduler reschedules {@code teleop}, whose
- * {@code initialize()} puts the follower back in teleop mode.
+ * <p>{@link #sense()} is the only caller of {@code follower.update()}. The {@link #teleop} command's
+ * initialize is the only caller of {@code startTeleopDrive()}. Mode handoff follows from the
+ * scheduler: teleop is the default command, a path command preempts it, and teleop is rescheduled
+ * when the path ends.
  */
 public class Drive extends ForwardSubsystem {
 
-    /** Watchdog, not a schedule. Generous on purpose; a short timeout truncates autos silently. */
+    /** Watchdog. Deliberately generous; a short timeout truncates autos silently. */
     public static final long DEFAULT_PATH_TIMEOUT_MS = 8000;
 
     public static final long DEFAULT_TURN_TIMEOUT_MS = 3000;
@@ -58,22 +46,19 @@ public class Drive extends ForwardSubsystem {
         follower.setStartingPose(startingPose);
     }
 
-    /** Resume from wherever the last OpMode left the robot. Use in teleop, after auto. */
+    /** Resumes from the stored pose. Use in teleop, after auto. */
     public Drive(HardwareMap hardwareMap) {
         this(hardwareMap, PoseStore.loadOr(new Pose()));
     }
 
     /**
-     * Pedro's {@code Follower.update()} is a closed loop: it refreshes localization and writes
-     * motor powers in one call, interleaved with the path state machine, so it cannot be split into
-     * our two phases. {@code updatePose()} is public but calling it twice per loop corrupts velocity
-     * -- {@code PoseTracker.update()} shifts {@code previousPoseTime} forward, so the second call
+     * Pedro's {@code update()} refreshes localization and writes motor powers in one call and
+     * cannot be split. {@code updatePose()} must not be called separately: {@code
+     * PoseTracker.update()} shifts {@code previousPoseTime}, so a second call in the same loop
      * measures velocity over roughly zero elapsed time.
      *
-     * <p>So it runs whole, in {@code sense()}. That makes the pose every command, assist and
-     * subsystem reads this loop the freshest available, which is the property this split exists to
-     * provide. The cost is that drive vectors set by a command this loop are applied by the next
-     * loop's update -- roughly 20 ms, and the same latency the single-phase version already had.
+     * <p>Running it here keeps the pose read during the command phase current. Drive vectors set by
+     * a command this loop are applied by the next loop's update.
      */
     @Override
     public void sense() {
@@ -81,7 +66,7 @@ public class Drive extends ForwardSubsystem {
         PoseStore.save(follower.getPose());
     }
 
-    /** Nothing to do: the follower already wrote motor powers during {@link #sense()}. */
+    /** Empty: the follower wrote motor powers during {@link #sense()}. */
     @Override
     public void act() {
         // intentionally empty; see sense()
@@ -105,15 +90,12 @@ public class Drive extends ForwardSubsystem {
         return assists;
     }
 
-    /**
-     * Start a {@link Route} on this drivetrain. Goes through the subsystem so the {@code Follower}
-     * itself never escapes.
-     */
+    /** Starts a {@link Route} without exposing the {@code Follower}. */
     public Route route(Alliance alliance, Waypoint start) {
         return Route.from(follower, alliance, start);
     }
 
-    /** Escape hatch for path geometry the {@link Route} vocabulary cannot express yet. */
+    /** For path geometry {@link Route} cannot express. */
     public PathBuilder pathBuilder() {
         return new PathBuilder(follower);
     }
@@ -121,10 +103,8 @@ public class Drive extends ForwardSubsystem {
     // ---------------------------------------------------------------- commands
 
     /**
-     * Default command. Stick input goes through the assist stack on the way to the follower.
-     *
-     * <p>Suppliers must already be in {@link DriveInput}'s sign convention; nothing here negates.
-     * Field-centric.
+     * Default command. Stick input passes through the assist stack. Suppliers must already be in
+     * {@link DriveInput}'s sign convention. Field-centric.
      */
     public Command teleop(DoubleSupplier forward, DoubleSupplier strafe, DoubleSupplier turn) {
         return teleop(forward, strafe, turn, false);
@@ -188,10 +168,7 @@ public class Drive extends ForwardSubsystem {
                 .withTimeout(timeoutMs);
     }
 
-    /**
-     * Hold a pose against contact. Never finishes on its own -- race it, time it out, or let the
-     * driver take the drivetrain back.
-     */
+    /** Holds a pose. Never finishes on its own; race it or let the driver take the drivetrain. */
     public Command holdAt(Waypoint waypoint, Alliance alliance) {
         return new FunctionalCommand(
                 () -> follower.holdPoint(waypoint.pose(alliance)),
@@ -201,16 +178,15 @@ public class Drive extends ForwardSubsystem {
                 this);
     }
 
-    /** Stop following immediately. */
+    /** Stops following. */
     public Command halt() {
         return new FunctionalCommand(
                 follower::breakFollowing, () -> {}, interrupted -> {}, () -> true, this);
     }
 
     /**
-     * Enable an assist for as long as this command runs. Requires no subsystems, so it composes with
-     * the driver and with any macro. Bind with {@code toggleWhenPressed} for a latch or {@code
-     * whenHeld} for hold-to-use.
+     * Enables an assist while this command runs. Requires no subsystems. Bind with {@code
+     * toggleWhenPressed} for a latch or {@code whenHeld} for hold-to-use.
      */
     public Command assist(DriveAssist assist) {
         return new StartEndCommand(

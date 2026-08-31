@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-/** Waypoint resolution is pure math, so it is tested on a laptop with no robot and no SDK. */
+/** Waypoint resolution is pure math; no robot or SDK needed. */
 class WaypointTest {
 
     private static final double EPS = 1e-9;
@@ -24,7 +24,7 @@ class WaypointTest {
     void blueMirrorsRedByDefault() {
         Waypoint w = Waypoint.red("score", 119.380, 128.800, 30);
         assertEquals(144.0 - 119.380, w.x(Alliance.BLUE), EPS);
-        assertEquals(128.800, w.y(Alliance.BLUE), EPS, "mirror is across x only; y is unchanged");
+        assertEquals(128.800, w.y(Alliance.BLUE), EPS, "mirror is across x only");
         assertEquals(Math.toRadians(150), w.heading(Alliance.BLUE), EPS);
         assertFalse(w.isBluePinned());
         assertEquals(0, w.blueDriftInches(), EPS);
@@ -66,7 +66,7 @@ class WaypointTest {
         Waypoint pinned = red.blue(27.0, 130.0, -40);
 
         assertNotSame(red, pinned);
-        assertFalse(red.isBluePinned(), "blue() must not mutate the original");
+        assertFalse(red.isBluePinned());
         assertEquals(144.0 - 119.380, red.x(Alliance.BLUE), EPS);
     }
 
@@ -74,7 +74,7 @@ class WaypointTest {
     void driftMeasuresDistanceFromThePureMirror() {
         // Pure mirror of x=119.380 is 24.620. Pin blue 3 inches further out and 4 up.
         Waypoint w = Waypoint.red("score", 119.380, 128.800, 225).blue(21.620, 132.800, 225);
-        assertEquals(5.0, w.blueDriftInches(), 1e-9, "3-4-5 triangle");
+        assertEquals(5.0, w.blueDriftInches(), 1e-9);
     }
 
     @Test
@@ -91,11 +91,7 @@ class WaypointTest {
         assertEquals(119.380, w.pose(Alliance.RED).getX(), EPS);
     }
 
-    /**
-     * Regression guard using real numbers from the 2025 TopRed12 / TopBlue12 paths. Those two files
-     * were hand-tuned apart, and this is the shape the prefab has to be able to express: mirror by
-     * default, one waypoint pinned, red untouched.
-     */
+    /** Real values from the 2025 TopRed12 / TopBlue12 paths, which were hand-tuned apart. */
     @Test
     void expressesLastSeasonsPerSideTuning() {
         Waypoint scorePreload =
@@ -103,7 +99,7 @@ class WaypointTest {
 
         assertEquals(99.533, scorePreload.x(Alliance.RED), EPS);
         assertEquals(53.000, scorePreload.x(Alliance.BLUE), EPS);
-        // Pure mirror would have put blue at 44.467; the real robot needed 53.0.
+        // The mirror gives 44.467; the robot needed 53.0.
         assertEquals(44.467, Field.mirrorX(99.533), 1e-9);
         assertTrue(scorePreload.blueDriftInches() > 8.0);
     }

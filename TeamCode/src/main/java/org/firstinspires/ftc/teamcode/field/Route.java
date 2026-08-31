@@ -12,24 +12,18 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Emits path legs from named {@link Waypoint}s, carrying a cursor from one leg to the next.
+ * Builds path legs from named waypoints. Each leg starts where the previous one ended, so seams
+ * are not retyped. Heading interpolation is taken from the waypoints: constant when the two
+ * headings match, linear otherwise.
  *
- * <p><b>The cursor is the point.</b> Each leg starts where the previous one ended, so a seam cannot
- * be retyped and therefore cannot drift. That single rule removes the 50% of coordinate literals
- * that were duplicates in the 2025 autos.
- *
- * <p>Heading interpolation is derived from the waypoints -- constant when the two headings match,
- * linear otherwise -- so headings stop being retyped on every leg too.
+ * <p>Legs are static geometry. Build them at init, not per loop.
  *
  * <pre>{@code
- * Route route = Route.from(follower, alliance, Waypoints.START);
+ * Route route = drive.route(alliance, Waypoints.START);
  * Command auto = new SequentialCommandGroup(
  *         drive.follow(route.lineTo(Waypoints.SCORE)),
- *         drive.follow(route.lineTo(Waypoints.PICKUP)),
- *         drive.follow(route.curveTo(Waypoints.GATE_CONTROL, Waypoints.GATE)));
+ *         drive.follow(route.lineTo(Waypoints.PICKUP)));
  * }</pre>
- *
- * <p>Legs are geometry, so build them once at OpMode init, not per loop.
  */
 public final class Route {
 
@@ -59,12 +53,11 @@ public final class Route {
         return cursor;
     }
 
-    /** Waypoint names in the order this route visited them. Useful in telemetry. */
+    /** Waypoint names in visit order. */
     public List<String> visited() {
         return new ArrayList<>(visited);
     }
 
-    /** Straight leg from the cursor to {@code next}. */
     public PathChain lineTo(Waypoint next) {
         Pose from = cursor.pose(alliance);
         Pose to = next.pose(alliance);
@@ -72,7 +65,6 @@ public final class Route {
         return finish(builder, from, to, next);
     }
 
-    /** Curved leg from the cursor through the given control points to {@code next}. */
     public PathChain curveTo(Waypoint control, Waypoint next, Waypoint... moreControls) {
         Pose from = cursor.pose(alliance);
         Pose to = next.pose(alliance);
@@ -89,10 +81,7 @@ public final class Route {
         return finish(builder, from, to, next);
     }
 
-    /**
-     * Move the cursor without emitting a leg. Use after the robot is repositioned by something
-     * other than a path, so the next leg still starts from the truth.
-     */
+    /** Moves the cursor without emitting a leg, after the robot is repositioned by other means. */
     public Route jumpTo(Waypoint next) {
         cursor = next;
         visited.add(next.name());

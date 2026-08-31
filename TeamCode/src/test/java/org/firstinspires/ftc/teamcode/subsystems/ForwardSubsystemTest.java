@@ -12,10 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The ordering guarantee is the whole point of the class, so it is asserted rather than assumed.
- * Runs on a laptop; no hardware involved.
- */
+/** Asserts the sense-before-act ordering guarantee. No hardware involved. */
 class ForwardSubsystemTest {
 
     /** Records the phase calls it receives, in order. */
@@ -43,7 +40,7 @@ class ForwardSubsystemTest {
 
     @BeforeEach
     void setUp() {
-        // Both registries are static and outlive a single test, exactly as they outlive an OpMode.
+        // Both registries are static and outlive a single test.
         CommandScheduler.getInstance().reset();
         ForwardSubsystem.resetRegistry();
         log = new ArrayList<>();
@@ -67,7 +64,7 @@ class ForwardSubsystemTest {
         assertEquals(
                 List.of("a.sense", "b.sense", "c.sense", "a.act", "b.act", "c.act"),
                 log,
-                "no subsystem may act while another still holds last loop's sensor values");
+                "no subsystem may act before every subsystem has sensed");
     }
 
     @Test
@@ -75,7 +72,7 @@ class ForwardSubsystemTest {
         assertEquals(0, ForwardSubsystem.registeredCount());
         new Recorder("a", log);
         new Recorder("b", log);
-        assertEquals(2, ForwardSubsystem.registeredCount(), "no manual register() call to forget");
+        assertEquals(2, ForwardSubsystem.registeredCount());
     }
 
     @Test
@@ -88,14 +85,14 @@ class ForwardSubsystemTest {
         assertEquals(0, ForwardSubsystem.registeredCount());
         ForwardSubsystem.senseAll();
         ForwardSubsystem.actAll();
-        assertTrue(log.isEmpty(), "a subsystem from a finished OpMode must not still be ticking");
+        assertTrue(log.isEmpty(), "a subsystem from a finished OpMode must not tick");
     }
 
     @Test
     void periodicIsInertSoItCannotBeUsedByMistake() {
         Recorder a = new Recorder("a", log);
         a.periodic();
-        assertTrue(log.isEmpty(), "periodic() is final and empty; sense()/act() replace it");
+        assertTrue(log.isEmpty());
     }
 
     @Test
@@ -108,6 +105,6 @@ class ForwardSubsystemTest {
         }
 
         assertEquals(6, log.size());
-        assertEquals(1, ForwardSubsystem.registeredCount(), "registry must not grow per loop");
+        assertEquals(1, ForwardSubsystem.registeredCount());
     }
 }

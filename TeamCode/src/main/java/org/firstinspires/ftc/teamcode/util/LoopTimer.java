@@ -1,19 +1,10 @@
 package org.firstinspires.ftc.teamcode.util;
 
 /**
- * Loop timing and rate limiting, with the clock passed in so it is testable on a laptop.
+ * Loop timing and rate limiting. The clock is a parameter so this is testable off-robot.
  *
- * <p>Fixes two things that bit last season.
- *
- * <ul>
- *   <li><b>Divide by zero.</b> {@code Drivetrain.java:75-79} computed {@code dt} from {@code
- *       System.currentTimeMillis()} and divided by it. A sub-millisecond loop gives {@code dt == 0}
- *       and the angular velocity became {@code ±Infinity}, which was then printed to the driver
- *       station. Here the clock is nanoseconds and {@link #hz()} returns 0 rather than infinity.
- *   <li><b>Bogus first sample.</b> The first {@link #tick} establishes the baseline and reports
- *       {@code dt == 0} instead of "now minus zero", which on Android is boot-relative and enormous.
- *       That is the same class of bug as {@code Debouncer.java:5}.
- * </ul>
+ * <p>The first {@link #tick} reports {@code dt = 0} rather than a boot-relative nanoTime, and
+ * {@link #hz()} returns 0 rather than infinity when {@code dt} is 0.
  */
 public final class LoopTimer {
 
@@ -26,7 +17,7 @@ public final class LoopTimer {
     private boolean throttleStarted;
     private long lastDueMs;
 
-    /** Call exactly once per loop, with {@code System.nanoTime()}. */
+    /** Call once per loop with {@code System.nanoTime()}. */
     public void tick(long nowNs) {
         if (!started) {
             started = true;
@@ -38,23 +29,15 @@ public final class LoopTimer {
         lastNs = nowNs;
     }
 
-    /** Seconds since the previous loop. Zero on the first loop. */
     public double dtSeconds() {
         return dtSeconds;
     }
 
-    /** Loop rate. Zero rather than infinity when two ticks land on the same nanosecond. */
     public double hz() {
         return dtSeconds > 0 ? 1.0 / dtSeconds : 0.0;
     }
 
-    /**
-     * Rate limiter. Returns true at most once per {@code intervalMs}, and always true the first
-     * time.
-     *
-     * <p>Replaces the hand-rolled {@code lastTelemetryUpdate} field that was copy-pasted into three
-     * OpModes last season.
-     */
+    /** True at most once per {@code intervalMs}, and always on the first call. */
     public boolean due(long nowMs, long intervalMs) {
         if (!throttleStarted || nowMs - lastDueMs >= intervalMs) {
             throttleStarted = true;

@@ -1,20 +1,11 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 /**
- * An immutable drive request, in one fixed sign convention.
+ * Immutable drive request.
  *
- * <p><b>The convention lives here and nowhere else.</b> Last season the signs were smeared across
- * three layers -- a {@code dir} multiplier in each OpMode, a negation in {@code ArcadeDrive}, and an
- * argument swap in {@code Drivetrain.updateTeleOpDrive} -- so nobody could say which layer owned it.
- *
- * <ul>
- *   <li>{@code forward} positive drives away from the driver station
- *   <li>{@code strafe} positive drives left
- *   <li>{@code turn} positive rotates counter-clockwise
- * </ul>
- *
- * <p>OpModes are responsible for mapping raw gamepad axes into this convention, e.g. {@code () ->
- * -gamepad1.left_stick_y}. Nothing downstream negates anything.
+ * <p>Sign convention, fixed here and nowhere else: {@code forward} positive drives away from the
+ * driver station, {@code strafe} positive drives left, {@code turn} positive rotates
+ * counter-clockwise. OpModes map raw gamepad axes into this convention; nothing downstream negates.
  */
 public final class DriveInput {
 
@@ -32,7 +23,7 @@ public final class DriveInput {
         return new DriveInput(forward, strafe, newTurn);
     }
 
-    /** Scale translation only. Turn authority is left alone. */
+    /** Scales translation only; turn is unchanged. */
     public DriveInput scaledTranslation(double factor) {
         return new DriveInput(forward * factor, strafe * factor, turn);
     }
