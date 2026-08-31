@@ -21,7 +21,7 @@ import java.util.List;
  * Route route = drive.route(alliance, Waypoints.START);
  * Command auto = new SequentialCommandGroup(
  *         drive.follow(route.lineTo(Waypoints.SCORE)),
- *         drive.follow(route.curveTo(Waypoints.GATE_CONTROL, Waypoints.GATE)),
+ *         drive.follow(route.curveTo(Waypoints.GATE, Waypoints.GATE_CONTROL)),
  *         drive.follow(route.lineTo(Waypoints.PICKUP)));
  * }</pre>
  */
@@ -65,23 +65,18 @@ public final class Route {
         return finish(builder, from, to, next);
     }
 
-    /** Quadratic curve through one control point. Arguments are in travel order. */
-    public PathChain curveTo(Waypoint control, Waypoint next) {
-        return curve(next, control);
-    }
-
-    /** Cubic curve through two control points. Arguments are in travel order. */
-    public PathChain curveTo(Waypoint firstControl, Waypoint secondControl, Waypoint next) {
-        return curve(next, firstControl, secondControl);
-    }
-
-    private PathChain curve(Waypoint next, Waypoint... controls) {
+    /**
+     * Curve to {@code next} through the given control points. Control points shape the path and are
+     * not poses the robot holds, so their headings are unused; they are {@link Waypoint}s so that
+     * they mirror with the rest of the route.
+     */
+    public PathChain curveTo(Waypoint next, Waypoint... via) {
         Pose from = cursor.pose(alliance);
         Pose to = next.pose(alliance);
 
         List<Pose> points = new ArrayList<>();
         points.add(from);
-        for (Waypoint control : controls) {
+        for (Waypoint control : via) {
             points.add(control.pose(alliance));
         }
         points.add(to);
