@@ -20,6 +20,10 @@ import java.util.List;
  *
  * <p>Bulk caching is MANUAL and cleared once per loop, so every sensor read within a loop returns
  * the same value. Do not busy-wait on a sensor inside a single loop.
+ *
+ * <p>The scheduler runs in {@link #run()} only, so no command or trigger binding fires before Play.
+ * Gamepads are still polled during init, so {@code driver.wasJustPressed(...)} works in an
+ * overridden {@link #initialize_loop()} for auto selectors.
  */
 public abstract class ForwardOpMode extends CommandOpMode {
 
