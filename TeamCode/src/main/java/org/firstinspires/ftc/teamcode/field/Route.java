@@ -21,6 +21,7 @@ import java.util.List;
  * Route route = drive.route(alliance, Waypoints.START);
  * Command auto = new SequentialCommandGroup(
  *         drive.follow(route.lineTo(Waypoints.SCORE)),
+ *         drive.follow(route.curveTo(Waypoints.GATE_CONTROL, Waypoints.GATE)),
  *         drive.follow(route.lineTo(Waypoints.PICKUP)));
  * }</pre>
  */
@@ -64,15 +65,24 @@ public final class Route {
         return finish(builder, from, to, next);
     }
 
-    public PathChain curveTo(Waypoint control, Waypoint next, Waypoint... moreControls) {
+    /** Quadratic curve through one control point. Arguments are in travel order. */
+    public PathChain curveTo(Waypoint control, Waypoint next) {
+        return curve(next, control);
+    }
+
+    /** Cubic curve through two control points. Arguments are in travel order. */
+    public PathChain curveTo(Waypoint firstControl, Waypoint secondControl, Waypoint next) {
+        return curve(next, firstControl, secondControl);
+    }
+
+    private PathChain curve(Waypoint next, Waypoint... controls) {
         Pose from = cursor.pose(alliance);
         Pose to = next.pose(alliance);
 
         List<Pose> points = new ArrayList<>();
         points.add(from);
-        points.add(control.pose(alliance));
-        for (Waypoint extra : moreControls) {
-            points.add(extra.pose(alliance));
+        for (Waypoint control : controls) {
+            points.add(control.pose(alliance));
         }
         points.add(to);
 
