@@ -40,10 +40,29 @@ public final class LoopRunner {
         ForwardSubsystem.resetRegistry();
     }
 
-    /** Motors advanced each loop. */
+    /** Motors advanced each loop. Not needed for motors created by {@link #motor}. */
     public LoopRunner stepping(FakeMotor... fakeMotors) {
         motors.addAll(Arrays.asList(fakeMotors));
         return this;
+    }
+
+    /** Creates a motor already registered for stepping. */
+    public FakeMotor motor(String name) {
+        return motor(name, 2000);
+    }
+
+    public FakeMotor motor(String name, double ticksPerSecondAtFullPower) {
+        FakeMotor fake = new FakeMotor(name, ticksPerSecondAtFullPower);
+        motors.add(fake);
+        return fake;
+    }
+
+    public FakeServo servo(String name) {
+        return new FakeServo(name);
+    }
+
+    public FakeDigitalChannel digitalChannel(String name) {
+        return new FakeDigitalChannel(name);
     }
 
     public void loop() {
