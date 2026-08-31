@@ -54,7 +54,7 @@ public abstract class ForwardOpMode extends CommandOpMode {
         refreshInputs();
         ForwardSubsystem.senseAll();
         super.initialize_loop();
-        // No actAll(): nothing moves before Play.
+        // No actAll(): nothing moves during init.
     }
 
     @Override
@@ -82,7 +82,7 @@ public abstract class ForwardOpMode extends CommandOpMode {
         return loopTimer.hz();
     }
 
-    /** Rate limiter for telemetry, which is expensive to transmit every loop. */
+    /** Rate limiter for telemetry. */
     protected boolean telemetryDue(long intervalMs) {
         return loopTimer.due(System.currentTimeMillis(), intervalMs);
     }

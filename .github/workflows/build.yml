@@ -31,7 +31,7 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      # A duplicated class name makes --tests filters ambiguous and hides which file you are in.
+      # A duplicated class name makes --tests filters ambiguous.
       # Convention: *Bench for hardware checks, *Tuner for finding constants, *Test only in src/test.
       - name: Check for class-name collisions between src/main and src/test
         run: |

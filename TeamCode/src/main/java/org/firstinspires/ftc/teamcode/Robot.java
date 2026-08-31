@@ -16,7 +16,7 @@ public final class Robot {
     public final Alliance alliance;
     public final Drive drive;
 
-    /** Auto. Starts from a known waypoint and discards any pose left by a previous match. */
+    /** Auto. Starts from a known waypoint and clears the stored pose. */
     public Robot(HardwareMap hardwareMap, Alliance alliance, Waypoint start) {
         this.alliance = alliance;
         PoseStore.clear();

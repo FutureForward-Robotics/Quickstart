@@ -32,8 +32,8 @@ dependencies {
     implementation project(':FtcRobotController')
 
     // Off-robot unit tests: ./gradlew :TeamCode:test
-    // JUnit 5 only. Do not add junit:junit:4.x -- with useJUnitPlatform() and no vintage
-    // engine, JUnit 4 tests are skipped silently instead of failing.
+    // JUnit 5 only. junit:junit:4.x with useJUnitPlatform() and no vintage engine is
+    // skipped silently instead of failing.
     testImplementation platform('org.junit:junit-bom:5.14.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

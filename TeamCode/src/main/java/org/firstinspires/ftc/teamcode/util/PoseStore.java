@@ -2,10 +2,7 @@ package org.firstinspires.ftc.teamcode.util;
 
 import com.pedropathing.geometry.Pose;
 
-/**
- * Carries the robot pose across an OpMode boundary. Stores primitives, so nothing here holds a
- * reference into a torn-down OpMode.
- */
+/** Carries the robot pose across an OpMode boundary. Stores primitives only. */
 public final class PoseStore {
 
     private PoseStore() {}

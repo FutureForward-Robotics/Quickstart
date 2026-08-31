@@ -29,7 +29,7 @@ import java.util.function.DoubleSupplier;
  */
 public class Drive extends ForwardSubsystem {
 
-    /** Path watchdog. A shorter value cuts a long path short without reporting failure. */
+    /** Path watchdog, milliseconds. */
     public static final long DEFAULT_PATH_TIMEOUT_MS = 8000;
 
     public static final long DEFAULT_TURN_TIMEOUT_MS = 3000;
@@ -53,8 +53,7 @@ public class Drive extends ForwardSubsystem {
      * PoseTracker.update()} shifts {@code previousPoseTime}, so a second call in the same loop
      * measures velocity over roughly zero elapsed time.
      *
-     * <p>Running it here keeps the pose read during the command phase current. Drive vectors set by
-     * a command this loop are applied by the next loop's update.
+     * <p>Drive vectors set by a command during this loop are applied by the next loop's update.
      */
     @Override
     public void sense() {
@@ -62,10 +61,9 @@ public class Drive extends ForwardSubsystem {
         PoseStore.save(follower.getPose());
     }
 
-    /** Empty: the follower wrote motor powers during {@link #sense()}. */
+    /** Empty; the follower wrote motor powers during {@link #sense()}. */
     @Override
     public void act() {
-        // intentionally empty; see sense()
     }
 
     // ---------------------------------------------------------------- state
@@ -86,7 +84,7 @@ public class Drive extends ForwardSubsystem {
         return assists;
     }
 
-    /** Starts a {@link Route} without exposing the {@code Follower}. */
+    /** Starts a {@link Route} on this drivetrain. */
     public Route route(Alliance alliance, Waypoint start) {
         return Route.from(follower, alliance, start);
     }

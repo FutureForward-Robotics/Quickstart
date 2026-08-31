@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-/** Waypoint resolution is pure math; no robot or SDK needed. */
+/** Waypoint resolution. */
 class WaypointTest {
 
     private static final double EPS = 1e-9;
@@ -91,7 +91,7 @@ class WaypointTest {
         assertEquals(119.380, w.pose(Alliance.RED).getX(), EPS);
     }
 
-    /** Real values from the 2025 TopRed12 / TopBlue12 paths, which were hand-tuned apart. */
+    /** Values from the 2025 TopRed12 / TopBlue12 paths, which were tuned separately. */
     @Test
     void expressesLastSeasonsPerSideTuning() {
         Waypoint scorePreload =

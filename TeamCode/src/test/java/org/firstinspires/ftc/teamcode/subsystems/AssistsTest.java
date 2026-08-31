@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Waypoint;
 import org.junit.jupiter.api.Test;
 
-/** Assists are pure functions. Drive itself needs a Follower and is not covered here. */
+/** Assists are pure functions. Drive needs a Follower and is not covered here. */
 class AssistsTest {
 
     private static final double EPS = 1e-9;

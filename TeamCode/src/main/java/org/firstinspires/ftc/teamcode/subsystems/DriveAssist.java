@@ -3,8 +3,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.pedropathing.geometry.Pose;
 
 /**
- * Continuous correction applied to the driver's request before it reaches the follower. Assists
- * require no subsystems, so they do not conflict with commands.
+ * Continuous correction applied to the driver's request before it reaches the follower. Requires
+ * no subsystems.
  */
 @FunctionalInterface
 public interface DriveAssist {

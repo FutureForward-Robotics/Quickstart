@@ -7,9 +7,8 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
 /**
- * Lifecycle for {@link RobotTest}. The scheduler and subsystem registry are static, so they are
- * cleared before and after each test; {@code BeforeEachCallback} runs ahead of any {@code
- * @BeforeEach} in the test class, so subsystems constructed there see a clean registry.
+ * Lifecycle for {@link RobotTest}. Clears the static scheduler and subsystem registry before and
+ * after each test. {@code BeforeEachCallback} runs ahead of any {@code @BeforeEach} in the class.
  */
 public final class RobotTestExtension
         implements BeforeEachCallback, AfterEachCallback, ParameterResolver {

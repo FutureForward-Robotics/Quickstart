@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.util;
 
 /**
- * Loop timing and rate limiting. The clock is a parameter so this is testable off-robot.
+ * Loop timing and rate limiting. The clock is passed in.
  *
  * <p>The first {@link #tick} reports {@code dt = 0} rather than a boot-relative nanoTime, and
  * {@link #hz()} returns 0 rather than infinity when {@code dt} is 0.

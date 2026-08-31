@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Asserts the sense-before-act ordering guarantee. No hardware involved. */
+/** Asserts the sense-before-act ordering. */
 class ForwardSubsystemTest {
 
     /** Records the phase calls it receives, in order. */

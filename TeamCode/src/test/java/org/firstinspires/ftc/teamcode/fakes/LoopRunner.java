@@ -23,10 +23,9 @@ import java.util.function.BooleanSupplier;
  * Runs the robot loop off-robot: sense, scheduler, act, then advance fake hardware by one tick.
  * Mirrors {@code ForwardOpMode.run()} without gamepads or bulk caching.
  *
- * <p>Devices created here are registered under their name in {@link #hardwareMap()}, so subsystems
- * keep their normal {@code HardwareMap} constructor. A real {@code HardwareMap.get} calls native
- * code and throws off-robot, so this one is stubbed; lookups by an unregistered name or the wrong
- * type throw, which is what catches a mistyped hardware name.
+ * <p>Devices created here are registered by name in {@link #hardwareMap()}, a stub, because a real
+ * {@code HardwareMap.get} calls native code and throws off-robot. Lookups by an unregistered name
+ * or the wrong type throw.
  */
 public final class LoopRunner {
 
@@ -57,7 +56,7 @@ public final class LoopRunner {
 
     // ------------------------------------------------------------------ hardware
 
-    /** Stubbed map holding the devices created here, for a subsystem's HardwareMap constructor. */
+    /** Stubbed map holding the devices created here. */
     public HardwareMap hardwareMap() {
         return hardwareMap;
     }
@@ -81,7 +80,7 @@ public final class LoopRunner {
         return register(name, new FakeDigitalChannel(name));
     }
 
-    /** Registers a device you built yourself. */
+    /** Registers a device built elsewhere. */
     public <T extends HardwareDevice> T register(String name, T device) {
         devices.put(name, device);
         return device;

@@ -6,8 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Subsystem with a two-phase loop. Every subsystem senses before any subsystem acts, so results do
- * not depend on the order subsystems were constructed in.
+ * Subsystem with a two-phase loop: every subsystem senses before any subsystem acts.
  *
  * <p>Loop order, driven by {@code ForwardOpMode}:
  *
