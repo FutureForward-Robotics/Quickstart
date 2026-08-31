@@ -6,7 +6,7 @@ import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 import org.firstinspires.ftc.teamcode.Robot;
 import org.firstinspires.ftc.teamcode.subsystems.Assists;
 
-/** The only place the driver button map lives. */
+/** Driver button map. */
 public final class DriverBindings {
 
     private DriverBindings() {}
@@ -14,7 +14,6 @@ public final class DriverBindings {
     private static final double PRECISION_SCALE = 0.35;
 
     public static void configure(Robot robot, GamepadEx driver, GamepadEx operator) {
-        // Sticks mapped into DriveInput's convention here and nowhere else.
         robot.drive.setDefaultCommand(
                 robot.drive.teleop(
                         () -> -driver.getLeftY(),

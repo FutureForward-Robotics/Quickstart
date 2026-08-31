@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.field;
 
-/** Alliance colour. Pass as a value; do not hold it in a mutable static. */
+/** Alliance colour. */
 public enum Alliance {
     RED,
     BLUE;

@@ -12,11 +12,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 /**
- * DcMotorEx whose encoder integrates applied power over stepped time, so closed-loop behaviour can
- * be tested off-robot. A Mockito mock returns 0 from getCurrentPosition() forever, which is why
- * last season's subsystem tests could only assert bookkeeping.
+ * DcMotorEx whose encoder integrates applied power over stepped time.
  *
- * <p>Model: ticks += power * ticksPerSecondAtFullPower * dt, with direction and zero-power
+ * <p>{@code ticks += power * ticksPerSecondAtFullPower * dt}, with direction and zero-power
  * behaviour applied. Call {@link #step(double)} to advance.
  */
 public class FakeMotor implements DcMotorEx {

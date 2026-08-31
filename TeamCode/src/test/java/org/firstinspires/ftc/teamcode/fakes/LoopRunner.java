@@ -57,7 +57,7 @@ public final class LoopRunner {
 
     // ------------------------------------------------------------------ hardware
 
-    /** Pass this to a subsystem exactly as an OpMode would. */
+    /** Stubbed map holding the devices created here, for a subsystem's HardwareMap constructor. */
     public HardwareMap hardwareMap() {
         return hardwareMap;
     }

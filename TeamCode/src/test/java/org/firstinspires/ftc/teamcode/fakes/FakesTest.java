@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>To test a new subsystem: annotate the class {@link RobotTest}, take a {@link LoopRunner}
  * parameter, create its devices with {@code runner.motor(...)}, and construct the subsystem from
- * {@code runner.hardwareMap()} exactly as an OpMode would.
+ * {@code runner.hardwareMap()}.
  */
 @RobotTest
 class FakesTest {

@@ -3,10 +3,8 @@ package org.firstinspires.ftc.teamcode.util;
 import com.pedropathing.geometry.Pose;
 
 /**
- * Carries the robot pose across an OpMode boundary so teleop starts field-oriented.
- *
- * <p>Stores primitives only. Do not cache hardware or subsystems statically: a {@code HardwareMap}
- * does not survive OpMode teardown.
+ * Carries the robot pose across an OpMode boundary. Stores primitives, so nothing here holds a
+ * reference into a torn-down OpMode.
  */
 public final class PoseStore {
 

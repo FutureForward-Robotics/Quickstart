@@ -5,9 +5,7 @@ import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.opmodes.ForwardOpMode;
 
 /**
- * Match teleop. Subclasses supply only the alliance, so the two sides cannot drift apart.
- *
- * <p>{@code configure()} is final; put shared setup here and per-alliance values in the subclass.
+ * Match teleop. Subclasses supply the alliance; {@code configure()} is final and does the rest.
  */
 public abstract class MatchTeleOp extends ForwardOpMode {
 

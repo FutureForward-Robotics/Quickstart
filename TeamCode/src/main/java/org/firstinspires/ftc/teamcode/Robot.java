@@ -8,10 +8,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.util.PoseStore;
 
 /**
- * Composition root. Builds every subsystem once; OpModes hold one of these and add bindings.
- *
- * <p>Alliance is a field here, not a global. Not to be confused with SolversLib's {@code
- * command.Robot}, which is an alternative OpMode host we do not use.
+ * Composition root. Builds every subsystem once and holds the alliance for the match. OpModes
+ * construct one and add bindings.
  */
 public final class Robot {
 

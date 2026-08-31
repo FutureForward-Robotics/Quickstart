@@ -3,9 +3,9 @@ package org.firstinspires.ftc.teamcode.subsystems;
 /**
  * Immutable drive request.
  *
- * <p>Sign convention, fixed here and nowhere else: {@code forward} positive drives away from the
- * driver station, {@code strafe} positive drives left, {@code turn} positive rotates
- * counter-clockwise. OpModes map raw gamepad axes into this convention; nothing downstream negates.
+ * <p>{@code forward} positive drives away from the driver station, {@code strafe} positive drives
+ * left, {@code turn} positive rotates counter-clockwise. Callers supply values already in this
+ * convention.
  */
 public final class DriveInput {
 

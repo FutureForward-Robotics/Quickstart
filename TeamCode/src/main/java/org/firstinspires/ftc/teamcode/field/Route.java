@@ -12,9 +12,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Builds path legs from named waypoints. Each leg starts where the previous one ended, so seams
- * are not retyped. Heading interpolation is taken from the waypoints: constant when the two
- * headings match, linear otherwise.
+ * Builds path legs from named waypoints. Each leg starts where the previous one ended. Heading
+ * interpolation comes from the waypoints: constant when the two headings match, linear otherwise.
  *
  * <p>Legs are static geometry. Build them at init, not per loop.
  *

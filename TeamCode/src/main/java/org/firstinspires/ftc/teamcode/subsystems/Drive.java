@@ -23,17 +23,13 @@ import java.util.function.DoubleSupplier;
 /**
  * Drivetrain wrapping Pedro's {@link Follower}.
  *
- * <p>Every motion command declares this subsystem as a requirement, calls {@code breakFollowing()}
- * when interrupted, and carries a timeout.
- *
- * <p>{@link #sense()} is the only caller of {@code follower.update()}. The {@link #teleop} command's
- * initialize is the only caller of {@code startTeleopDrive()}. Mode handoff follows from the
- * scheduler: teleop is the default command, a path command preempts it, and teleop is rescheduled
- * when the path ends.
+ * <p>Motion commands require this subsystem, call {@code breakFollowing()} when interrupted, and
+ * carry a timeout. {@link #teleop} is the default command; a path command preempts it and the
+ * scheduler restores it when the path ends.
  */
 public class Drive extends ForwardSubsystem {
 
-    /** Watchdog. Deliberately generous; a short timeout truncates autos silently. */
+    /** Path watchdog. A shorter value cuts a long path short without reporting failure. */
     public static final long DEFAULT_PATH_TIMEOUT_MS = 8000;
 
     public static final long DEFAULT_TURN_TIMEOUT_MS = 3000;
