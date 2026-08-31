@@ -5,6 +5,7 @@ import com.seattlesolvers.solverslib.command.CommandOpMode;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
 import com.seattlesolvers.solverslib.gamepad.GamepadEx;
 
+import org.firstinspires.ftc.teamcode.subsystems.ForwardSubsystem;
 import org.firstinspires.ftc.teamcode.util.LoopTimer;
 
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public abstract class TeamOpMode extends CommandOpMode {
     public final void initialize() {
         // Before anything constructs a SubsystemBase, which would register with the old instance.
         CommandScheduler.getInstance().reset();
+        ForwardSubsystem.resetRegistry();
 
         hubs.clear();
         hubs.addAll(hardwareMap.getAll(LynxModule.class));
@@ -61,13 +63,22 @@ public abstract class TeamOpMode extends CommandOpMode {
     @Override
     public void initialize_loop() {
         refreshInputs();
+        ForwardSubsystem.senseAll();
         super.initialize_loop();
+        // Deliberately no actAll(): nothing on the robot moves before Play.
     }
 
+    /**
+     * One loop: clear the cache, read inputs, let every subsystem sense, run the scheduler, then
+     * let every subsystem act. Commands therefore read a single consistent snapshot of the robot,
+     * and a target a command sets this loop is acted on this loop.
+     */
     @Override
     public void run() {
         refreshInputs();
+        ForwardSubsystem.senseAll();
         super.run();
+        ForwardSubsystem.actAll();
     }
 
     /**

@@ -43,7 +43,7 @@ import java.util.function.DoubleSupplier;
  * path command preempts it, and when the path ends the scheduler reschedules {@code teleop}, whose
  * {@code initialize()} puts the follower back in teleop mode.
  */
-public class Drive extends SubsystemBase {
+public class Drive extends ForwardSubsystem {
 
     /** Watchdog, not a schedule. Generous on purpose; a short timeout truncates autos silently. */
     public static final long DEFAULT_PATH_TIMEOUT_MS = 8000;
@@ -63,10 +63,28 @@ public class Drive extends SubsystemBase {
         this(hardwareMap, PoseStore.loadOr(new Pose()));
     }
 
+    /**
+     * Pedro's {@code Follower.update()} is a closed loop: it refreshes localization and writes
+     * motor powers in one call, interleaved with the path state machine, so it cannot be split into
+     * our two phases. {@code updatePose()} is public but calling it twice per loop corrupts velocity
+     * -- {@code PoseTracker.update()} shifts {@code previousPoseTime} forward, so the second call
+     * measures velocity over roughly zero elapsed time.
+     *
+     * <p>So it runs whole, in {@code sense()}. That makes the pose every command, assist and
+     * subsystem reads this loop the freshest available, which is the property this split exists to
+     * provide. The cost is that drive vectors set by a command this loop are applied by the next
+     * loop's update -- roughly 20 ms, and the same latency the single-phase version already had.
+     */
     @Override
-    public void periodic() {
+    public void sense() {
         follower.update();
         PoseStore.save(follower.getPose());
+    }
+
+    /** Nothing to do: the follower already wrote motor powers during {@link #sense()}. */
+    @Override
+    public void act() {
+        // intentionally empty; see sense()
     }
 
     // ---------------------------------------------------------------- state
