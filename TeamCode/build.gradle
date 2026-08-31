@@ -22,8 +22,28 @@ android {
     packagingOptions {
         jniLibs.useLegacyPackaging true
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {
     implementation project(':FtcRobotController')
+
+    // Off-robot unit tests: ./gradlew :TeamCode:test
+    // JUnit 5 only. Do NOT add junit:junit:4.x -- with useJUnitPlatform() and no vintage
+    // engine, JUnit 4 tests are silently skipped rather than failed. That trap hid a red
+    // test documenting a real bug for an entire season.
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.mockito:mockito-core:5.23.0'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
 }
