@@ -29,7 +29,7 @@ import java.util.List;
  *       -- reads only fields populated by {@code sense()}.
  * </ul>
  *
- * <p>Loop order, driven by {@code TeamOpMode}:
+ * <p>Loop order, driven by {@code ForwardOpMode}:
  *
  * <pre>
  *   clear bulk cache -> senseAll() -> scheduler (buttons, commands) -> actAll()
@@ -65,7 +65,7 @@ public abstract class ForwardSubsystem extends SubsystemBase {
     // ---------------------------------------------------------------- registry
 
     /**
-     * Clear the registry. Called by {@code TeamOpMode.initialize()} before {@code configure()},
+     * Clear the registry. Called by {@code ForwardOpMode.initialize()} before {@code configure()},
      * because these statics outlive an OpMode on the Control Hub.
      */
     public static void resetRegistry() {

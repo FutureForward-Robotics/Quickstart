@@ -31,7 +31,7 @@ import java.util.List;
  * cached value. That is the speedup. It also means a busy-wait for a sensor to change <em>within</em>
  * a single loop will never terminate -- put the wait in a command's {@code isFinished()} instead.
  */
-public abstract class TeamOpMode extends CommandOpMode {
+public abstract class ForwardOpMode extends CommandOpMode {
 
     protected GamepadEx driver;
     protected GamepadEx operator;

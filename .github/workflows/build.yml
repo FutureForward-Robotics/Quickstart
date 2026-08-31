@@ -1,0 +1,77 @@
+name: build
+
+# Last season there was no CI. The only workflow mirrored the repo to a public copy; nothing
+# compiled TeamCode and nothing ran the tests. That is why an empty test class, a 148-line
+# assertion-free test class, and a JUnit 4 test that could never execute all survived a full season.
+# This is the gate that stops that happening again.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: test + assemble
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # AGP 8.13.2 targets JDK 17. The project compiles to Java 8 bytecode regardless
+      # (build.common.gradle sets source/target 1.8).
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Provides sdkmanager and accepts licences, so AGP can fetch compileSdk 34 and build-tools.
+      # local.properties is gitignored on purpose; the SDK is located via ANDROID_HOME here.
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      # On-robot bench and tuning OpModes are a real need -- you need a way to exercise one
+      # mechanism, and a way to sweep a constant. What broke last season was the collision:
+      # subsystems.AimerTest (a JUnit test) and opmodes.test.AimerTest (an OpMode) both existed,
+      # as did two IndexerTests, so `--tests "*AimerTest"` was ambiguous and neither name told you
+      # which one you were reading. Ban the collision, not the concept.
+      # Convention: *Bench answers "does this mechanism work", *Tuner answers "what should this
+      # constant be", and *Test is reserved for src/test.
+      - name: Check for class-name collisions between src/main and src/test
+        run: |
+          collisions=$(comm -12 \
+            <(find TeamCode/src/main -name '*.java' -exec basename {} .java \; | sort -u) \
+            <(find TeamCode/src/test -name '*.java' -exec basename {} .java \; | sort -u))
+          if [ -n "$collisions" ]; then
+            echo "$collisions"
+            echo "::error::Class names above exist in both src/main and src/test. Rename the src/main one to *Bench or *Tuner."
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: ./gradlew :TeamCode:test
+
+      - name: Assemble debug APK
+        run: ./gradlew :TeamCode:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TeamCode-debug
+          path: TeamCode/build/outputs/apk/debug/TeamCode-debug.apk
+          if-no-files-found: error
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: TeamCode/build/reports/tests/

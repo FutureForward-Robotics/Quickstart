@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 
-import org.firstinspires.ftc.teamcode.opmodes.TeamOpMode;
+import org.firstinspires.ftc.teamcode.opmodes.ForwardOpMode;
 import org.firstinspires.ftc.teamcode.subsystems.Assists;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 
@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Drive;
  * about forty lines, logic has leaked upward.
  */
 @TeleOp(name = "Drive TeleOp", group = "drive")
-public class DriveTeleOp extends TeamOpMode {
+public class DriveTeleOp extends ForwardOpMode {
 
     private static final double PRECISION_SCALE = 0.35;
 
