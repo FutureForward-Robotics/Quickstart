@@ -3,8 +3,8 @@ package org.firstinspires.ftc.teamcode.field;
 import com.pedropathing.geometry.Pose;
 
 /**
- * Named field pose, authored in red coordinates. Blue defaults to the mirror of red; call {@link
- * #blue} to pin a different value for one waypoint. Immutable.
+ * Named field pose, authored in red coordinates. Blue is derived with {@link Field#SYMMETRY}; call
+ * {@link #blue} to pin a different value for one waypoint. Immutable.
  *
  * <pre>{@code
  * static final Waypoint START = Waypoint.red("start", 119.380, 128.800, 225);
@@ -65,14 +65,14 @@ public final class Waypoint {
         if (alliance.isRed()) {
             return redX;
         }
-        return bluePinned ? blueX : Field.mirrorX(redX);
+        return bluePinned ? blueX : Field.SYMMETRY.x(redX, redY);
     }
 
     public double y(Alliance alliance) {
         if (alliance.isRed()) {
             return redY;
         }
-        return bluePinned ? blueY : redY;
+        return bluePinned ? blueY : Field.SYMMETRY.y(redX, redY);
     }
 
     /** Radians, wrapped to [-pi, pi). */
@@ -80,19 +80,20 @@ public final class Waypoint {
         if (alliance.isRed()) {
             return Field.normalize(redHeading);
         }
-        return bluePinned ? Field.normalize(blueHeading) : Field.mirrorHeading(redHeading);
+        return bluePinned ? Field.normalize(blueHeading) : Field.SYMMETRY.heading(redHeading);
     }
 
     public Pose pose(Alliance alliance) {
         return new Pose(x(alliance), y(alliance), heading(alliance));
     }
 
-    /** Inches between the pinned blue value and the mirror. Zero when not pinned. */
+    /** Inches between the pinned blue value and the one {@link Field#SYMMETRY} would give. */
     public double blueDriftInches() {
         if (!bluePinned) {
             return 0;
         }
-        return Math.hypot(blueX - Field.mirrorX(redX), blueY - redY);
+        return Math.hypot(
+                blueX - Field.SYMMETRY.x(redX, redY), blueY - Field.SYMMETRY.y(redX, redY));
     }
 
     @Override

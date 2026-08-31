@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-/** Waypoint resolution. */
+/** Waypoint resolution under {@link Field#SYMMETRY}, which is MIRROR_X. */
 class WaypointTest {
 
     private static final double EPS = 1e-9;
@@ -24,21 +24,10 @@ class WaypointTest {
     void blueMirrorsRedByDefault() {
         Waypoint w = Waypoint.red("score", 119.380, 128.800, 30);
         assertEquals(144.0 - 119.380, w.x(Alliance.BLUE), EPS);
-        assertEquals(128.800, w.y(Alliance.BLUE), EPS, "mirror is across x only");
+        assertEquals(128.800, w.y(Alliance.BLUE), EPS);
         assertEquals(Math.toRadians(150), w.heading(Alliance.BLUE), EPS);
         assertFalse(w.isBluePinned());
         assertEquals(0, w.blueDriftInches(), EPS);
-    }
-
-    @Test
-    void mirroringTwiceIsIdentity() {
-        for (double x : new double[] {0, 12.5, 72, 119.38, 144}) {
-            assertEquals(x, Field.mirrorX(Field.mirrorX(x)), EPS);
-        }
-        for (double deg : new double[] {-179, -90, 0, 30, 135, 179}) {
-            double rad = Math.toRadians(deg);
-            assertEquals(rad, Field.mirrorHeading(Field.mirrorHeading(rad)), EPS);
-        }
     }
 
     @Test
@@ -99,8 +88,8 @@ class WaypointTest {
 
         assertEquals(99.533, scorePreload.x(Alliance.RED), EPS);
         assertEquals(53.000, scorePreload.x(Alliance.BLUE), EPS);
-        // The mirror gives 44.467; the robot needed 53.0.
-        assertEquals(44.467, Field.mirrorX(99.533), 1e-9);
+        // MIRROR_X gives 44.467; the robot needed 53.0.
+        assertEquals(44.467, Field.SYMMETRY.x(99.533, 98.933), 1e-9);
         assertTrue(scorePreload.blueDriftInches() > 8.0);
     }
 }

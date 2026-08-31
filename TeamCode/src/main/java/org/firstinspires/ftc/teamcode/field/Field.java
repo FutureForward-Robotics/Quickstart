@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.field;
 
 /**
- * Field geometry and the red-to-blue mirror: {@code x -> WIDTH_IN - x}, {@code heading -> 180deg -
- * heading}, y unchanged.
+ * Field geometry.
  *
- * <p>The mirror is a default. Per-side differences are pinned on the individual {@link Waypoint}.
+ * <p>{@link #SYMMETRY} is a per-season setting: check whether this year's field is a reflection or
+ * a 180 degree rotation before writing any waypoints. It only supplies the default blue value;
+ * per-side differences are pinned on the individual {@link Waypoint}.
  */
 public final class Field {
 
@@ -12,13 +13,8 @@ public final class Field {
 
     public static final double WIDTH_IN = 144.0;
 
-    public static double mirrorX(double x) {
-        return WIDTH_IN - x;
-    }
-
-    public static double mirrorHeading(double headingRad) {
-        return normalize(Math.PI - headingRad);
-    }
+    /** Set for the season. 2025-26 DECODE was {@link FieldSymmetry#MIRROR_X}. */
+    public static final FieldSymmetry SYMMETRY = FieldSymmetry.MIRROR_X;
 
     /** Wraps to [-pi, pi). */
     public static double normalize(double rad) {
