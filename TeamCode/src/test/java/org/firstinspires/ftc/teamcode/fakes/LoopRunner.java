@@ -1,21 +1,32 @@
 package org.firstinspires.ftc.teamcode.fakes;
 
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.qualcomm.robotcore.hardware.HardwareDevice;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
 
 import org.firstinspires.ftc.teamcode.subsystems.ForwardSubsystem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 /**
  * Runs the robot loop off-robot: sense, scheduler, act, then advance fake hardware by one tick.
  * Mirrors {@code ForwardOpMode.run()} without gamepads or bulk caching.
  *
- * <p>Call {@link #reset()} in a {@code @BeforeEach} before constructing subsystems.
+ * <p>Devices created here are registered under their name in {@link #hardwareMap()}, so subsystems
+ * keep their normal {@code HardwareMap} constructor. A real {@code HardwareMap.get} calls native
+ * code and throws off-robot, so this one is stubbed; lookups by an unregistered name or the wrong
+ * type throw, which is what catches a mistyped hardware name.
  */
 public final class LoopRunner {
 
@@ -23,6 +34,9 @@ public final class LoopRunner {
 
     private final double dtSeconds;
     private final List<FakeMotor> motors = new ArrayList<>();
+    private final Map<String, HardwareDevice> devices = new LinkedHashMap<>();
+    private final HardwareMap hardwareMap = mock(HardwareMap.class);
+
     private double elapsedSeconds;
     private int loops;
 
@@ -32,6 +46,7 @@ public final class LoopRunner {
 
     public LoopRunner(double dtSeconds) {
         this.dtSeconds = dtSeconds;
+        stubHardwareMap();
     }
 
     /** Clears the scheduler and subsystem registry, both of which are static. */
@@ -40,13 +55,14 @@ public final class LoopRunner {
         ForwardSubsystem.resetRegistry();
     }
 
-    /** Motors advanced each loop. Not needed for motors created by {@link #motor}. */
-    public LoopRunner stepping(FakeMotor... fakeMotors) {
-        motors.addAll(Arrays.asList(fakeMotors));
-        return this;
+    // ------------------------------------------------------------------ hardware
+
+    /** Pass this to a subsystem exactly as an OpMode would. */
+    public HardwareMap hardwareMap() {
+        return hardwareMap;
     }
 
-    /** Creates a motor already registered for stepping. */
+    /** Creates a motor, registers it under {@code name}, and advances it each loop. */
     public FakeMotor motor(String name) {
         return motor(name, 2000);
     }
@@ -54,16 +70,65 @@ public final class LoopRunner {
     public FakeMotor motor(String name, double ticksPerSecondAtFullPower) {
         FakeMotor fake = new FakeMotor(name, ticksPerSecondAtFullPower);
         motors.add(fake);
-        return fake;
+        return register(name, fake);
     }
 
     public FakeServo servo(String name) {
-        return new FakeServo(name);
+        return register(name, new FakeServo(name));
     }
 
     public FakeDigitalChannel digitalChannel(String name) {
-        return new FakeDigitalChannel(name);
+        return register(name, new FakeDigitalChannel(name));
     }
+
+    /** Registers a device you built yourself. */
+    public <T extends HardwareDevice> T register(String name, T device) {
+        devices.put(name, device);
+        return device;
+    }
+
+    /** Motors advanced each loop. Not needed for motors created by {@link #motor}. */
+    public LoopRunner stepping(FakeMotor... fakeMotors) {
+        motors.addAll(Arrays.asList(fakeMotors));
+        return this;
+    }
+
+    private void stubHardwareMap() {
+        when(hardwareMap.get(any(Class.class), anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            Class<?> type = invocation.getArgument(0);
+                            String name = invocation.getArgument(1);
+                            HardwareDevice device = devices.get(name);
+                            if (device == null) {
+                                throw new IllegalArgumentException(
+                                        "no device named \""
+                                                + name
+                                                + "\"; registered: "
+                                                + devices.keySet());
+                            }
+                            if (!type.isInstance(device)) {
+                                throw new IllegalArgumentException(
+                                        "device \""
+                                                + name
+                                                + "\" is a "
+                                                + device.getClass().getSimpleName()
+                                                + ", not a "
+                                                + type.getSimpleName());
+                            }
+                            return device;
+                        });
+
+        when(hardwareMap.tryGet(any(Class.class), anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            Class<?> type = invocation.getArgument(0);
+                            HardwareDevice device = devices.get(invocation.getArgument(1));
+                            return type.isInstance(device) ? device : null;
+                        });
+    }
+
+    // ------------------------------------------------------------------ loop
 
     public void loop() {
         ForwardSubsystem.senseAll();

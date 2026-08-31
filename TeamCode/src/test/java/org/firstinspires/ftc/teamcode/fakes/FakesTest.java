@@ -3,11 +3,14 @@ package org.firstinspires.ftc.teamcode.fakes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.seattlesolvers.solverslib.command.Command;
 import com.seattlesolvers.solverslib.command.FunctionalCommand;
 
@@ -18,14 +21,13 @@ import org.junit.jupiter.api.Test;
  * Template for a subsystem test suite, and coverage of the fakes themselves.
  *
  * <p>To test a new subsystem: annotate the class {@link RobotTest}, take a {@link LoopRunner}
- * parameter, create devices with {@code runner.motor(...)}, and pass them to a subsystem
- * constructor that accepts devices. {@code HardwareMap.get} calls native code and throws
- * off-robot, so a subsystem needs a device-accepting constructor alongside its HardwareMap one.
+ * parameter, create its devices with {@code runner.motor(...)}, and construct the subsystem from
+ * {@code runner.hardwareMap()} exactly as an OpMode would.
  */
 @RobotTest
 class FakesTest {
 
-    /** Stand-in mechanism: proportional position control. */
+    /** Stand-in mechanism: proportional position control, built from a HardwareMap. */
     private static final class TestLift extends ForwardSubsystem {
         private static final double KP = 0.002;
         private static final double TOLERANCE = 20;
@@ -34,8 +36,8 @@ class FakesTest {
         private double measured;
         private double setpoint;
 
-        TestLift(DcMotorEx motor) {
-            this.motor = motor;
+        TestLift(HardwareMap hardwareMap) {
+            motor = hardwareMap.get(DcMotorEx.class, "lift");
         }
 
         @Override
@@ -64,7 +66,8 @@ class FakesTest {
 
     @Test
     void closedLoopConvergesOnTarget(LoopRunner runner) {
-        TestLift lift = new TestLift(runner.motor("lift"));
+        runner.motor("lift");
+        TestLift lift = new TestLift(runner.hardwareMap());
 
         lift.to(1500).schedule();
         int loopsUsed = runner.until(lift::atTarget, 500);
@@ -75,7 +78,8 @@ class FakesTest {
 
     @Test
     void commandFinishesWhenTheMechanismArrives(LoopRunner runner) {
-        TestLift lift = new TestLift(runner.motor("lift"));
+        runner.motor("lift");
+        TestLift lift = new TestLift(runner.hardwareMap());
 
         Command move = lift.to(1000);
         move.schedule();
@@ -87,7 +91,7 @@ class FakesTest {
     @Test
     void senseHappensBeforeActWithinALoop(LoopRunner runner) {
         FakeMotor motor = runner.motor("lift");
-        TestLift lift = new TestLift(motor);
+        TestLift lift = new TestLift(runner.hardwareMap());
         motor.setEncoder(700);
 
         runner.loop();
@@ -97,8 +101,31 @@ class FakesTest {
 
     @Test
     void eachTestGetsAFreshRegistry(LoopRunner runner) {
-        new TestLift(runner.motor("lift"));
+        runner.motor("lift");
+        new TestLift(runner.hardwareMap());
         assertEquals(1, ForwardSubsystem.registeredCount(), "no leakage from earlier tests");
+    }
+
+    @Test
+    void mistypedHardwareNameFails(LoopRunner runner) {
+        runner.motor("lift");
+
+        IllegalArgumentException thrown =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> runner.hardwareMap().get(DcMotorEx.class, "lfit"));
+
+        assertTrue(thrown.getMessage().contains("lift"), "should list the registered names");
+    }
+
+    @Test
+    void wrongDeviceTypeFails(LoopRunner runner) {
+        runner.servo("claw");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> runner.hardwareMap().get(DcMotorEx.class, "claw"));
+        assertNotEquals(null, runner.hardwareMap().get(Servo.class, "claw"));
     }
 
     @Test
