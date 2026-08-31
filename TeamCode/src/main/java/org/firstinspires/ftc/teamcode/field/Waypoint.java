@@ -87,6 +87,16 @@ public final class Waypoint {
         return new Pose(x(alliance), y(alliance), heading(alliance));
     }
 
+    /** Inches to another waypoint, both resolved for {@code alliance}. */
+    public double distanceTo(Waypoint other, Alliance alliance) {
+        return Math.hypot(x(alliance) - other.x(alliance), y(alliance) - other.y(alliance));
+    }
+
+    /** Inches from a robot pose to this waypoint on {@code alliance}. */
+    public double distanceTo(Pose pose, Alliance alliance) {
+        return Math.hypot(x(alliance) - pose.getX(), y(alliance) - pose.getY());
+    }
+
     /** Inches between the pinned blue value and the one {@link Field#SYMMETRY} would give. */
     public double blueDriftInches() {
         if (!bluePinned) {

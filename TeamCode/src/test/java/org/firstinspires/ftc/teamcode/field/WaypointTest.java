@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.pedropathing.geometry.Pose;
+
 import org.junit.jupiter.api.Test;
 
 /** Waypoint resolution under {@link Field#SYMMETRY}, which is MIRROR_X. */
@@ -64,6 +66,44 @@ class WaypointTest {
         // Pure mirror of x=119.380 is 24.620. Pin blue 3 inches further out and 4 up.
         Waypoint w = Waypoint.red("score", 119.380, 128.800, 225).blue(21.620, 132.800, 225);
         assertEquals(5.0, w.blueDriftInches(), 1e-9);
+    }
+
+    @Test
+    void measuresDistanceBetweenWaypoints() {
+        Waypoint a = Waypoint.red("a", 100, 100, 0);
+        Waypoint b = Waypoint.red("b", 103, 104, 90);
+
+        assertEquals(5.0, a.distanceTo(b, Alliance.RED), 1e-9);
+        assertEquals(5.0, b.distanceTo(a, Alliance.RED), 1e-9, "symmetric");
+        assertEquals(0.0, a.distanceTo(a, Alliance.RED), 1e-9);
+    }
+
+    /** Every FieldSymmetry is an isometry, so unpinned waypoints keep their spacing on blue. */
+    @Test
+    void distanceSurvivesTheAllianceTransform() {
+        Waypoint a = Waypoint.red("a", 100, 100, 0);
+        Waypoint b = Waypoint.red("b", 103, 104, 90);
+
+        assertEquals(a.distanceTo(b, Alliance.RED), a.distanceTo(b, Alliance.BLUE), 1e-9);
+    }
+
+    @Test
+    void pinningBlueChangesTheBlueDistance() {
+        Waypoint a = Waypoint.red("a", 100, 100, 0);
+        // b mirrors to x=41, so the pin moves it in both axes.
+        Waypoint b = Waypoint.red("b", 103, 104, 90).blue(38, 110, 90);
+
+        assertEquals(5.0, a.distanceTo(b, Alliance.RED), 1e-9);
+        // a mirrors to x=44; the pinned b sits 6 across and 10 up from it.
+        assertEquals(Math.hypot(6, 10), a.distanceTo(b, Alliance.BLUE), 1e-9);
+    }
+
+    @Test
+    void measuresDistanceFromARobotPose() {
+        Waypoint goal = Waypoint.red("goal", 100, 100, 0);
+
+        assertEquals(5.0, goal.distanceTo(new Pose(96, 103, 0), Alliance.RED), 1e-9);
+        assertEquals(0.0, goal.distanceTo(goal.pose(Alliance.BLUE), Alliance.BLUE), 1e-9);
     }
 
     @Test

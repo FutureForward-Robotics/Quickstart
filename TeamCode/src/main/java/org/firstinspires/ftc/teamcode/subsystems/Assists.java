@@ -36,7 +36,7 @@ public final class Assists {
             Waypoint target, Alliance alliance, double radiusIn, double minScale) {
         final Pose goal = target.pose(alliance);
         return (driver, pose) -> {
-            double distance = Math.hypot(pose.getX() - goal.getX(), pose.getY() - goal.getY());
+            double distance = goal.distanceFrom(pose);
             if (distance >= radiusIn) {
                 return driver;
             }
