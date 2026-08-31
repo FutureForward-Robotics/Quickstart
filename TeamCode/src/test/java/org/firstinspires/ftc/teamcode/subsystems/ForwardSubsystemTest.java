@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.seattlesolvers.solverslib.command.CommandScheduler;
+import com.seattlesolvers.solverslib.command.RunCommand;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,6 +74,38 @@ class ForwardSubsystemTest {
         new Recorder("a", log);
         new Recorder("b", log);
         assertEquals(2, ForwardSubsystem.registeredCount());
+    }
+
+    /** Subsystems declare only parameterised constructors; the implicit super() must still register. */
+    private static final class TakesArguments extends ForwardSubsystem {
+        private final String hardwareName;
+        private int defaultExecutes;
+
+        TakesArguments(String hardwareName) {
+            this.hardwareName = hardwareName;
+        }
+
+        @Override
+        public void sense() {}
+
+        @Override
+        public void act() {}
+    }
+
+    @Test
+    void aSubclassWithNoExplicitSuperCallStillRegisters() {
+        TakesArguments subsystem = new TakesArguments("lift");
+
+        assertEquals(1, ForwardSubsystem.registeredCount(), "phase registry");
+        assertEquals("lift", subsystem.hardwareName, "own fields assigned after super()");
+
+        // Registration with the scheduler is observable through default-command dispatch, which
+        // only happens for registered subsystems.
+        subsystem.setDefaultCommand(new RunCommand(() -> subsystem.defaultExecutes++, subsystem));
+        CommandScheduler.getInstance().run();
+        CommandScheduler.getInstance().run();
+
+        assertTrue(subsystem.defaultExecutes > 0, "scheduler registry");
     }
 
     @Test
