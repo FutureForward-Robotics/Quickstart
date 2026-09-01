@@ -185,4 +185,34 @@ class FakesTest {
         assertFalse(limit.getState(), "pressed pulls the line low");
         assertTrue(limit.isPressed());
     }
+
+    @Test
+    void continuousRotationServoTakesSignedPower(LoopRunner runner) {
+        FakeCRServo roller = runner.register("roller", new FakeCRServo("roller"));
+
+        roller.setPower(-1.0);
+        assertEquals(-1.0, roller.getPower(), 1e-9);
+
+        roller.setPower(3.0);
+        assertEquals(1.0, roller.getPower(), 1e-9, "clamped like the SDK");
+    }
+
+    /**
+     * Battery voltage hangs off a public field on HardwareMap rather than {@code get(...)}, so the
+     * runner installs the mapping. Without it, any subsystem doing voltage compensation would NPE
+     * off-robot and be pushed into taking its devices through a test-only constructor.
+     */
+    @Test
+    void voltageIsReachableThroughTheHardwareMapField(LoopRunner runner) {
+        FakeVoltageSensor battery = runner.voltageSensor(12.4);
+
+        assertEquals(
+                12.4,
+                runner.hardwareMap().voltageSensor.iterator().next().getVoltage(),
+                1e-9);
+        assertEquals(1, battery.reads(), "reads are counted, so a sampling rate can be asserted");
+
+        battery.setVolts(9.0);
+        assertEquals(9.0, runner.hardwareMap().voltageSensor.iterator().next().getVoltage(), 1e-9);
+    }
 }

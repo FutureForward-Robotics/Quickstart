@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
 
 import org.firstinspires.ftc.teamcode.subsystems.ForwardSubsystem;
@@ -34,6 +35,7 @@ public final class LoopRunner {
     private final double dtSeconds;
     private final List<FakeMotor> motors = new ArrayList<>();
     private final Map<String, HardwareDevice> devices = new LinkedHashMap<>();
+    private final List<VoltageSensor> voltageSensors = new ArrayList<>();
     private final HardwareMap hardwareMap = mock(HardwareMap.class);
 
     private double elapsedSeconds;
@@ -78,6 +80,16 @@ public final class LoopRunner {
 
     public FakeDigitalChannel digitalChannel(String name) {
         return register(name, new FakeDigitalChannel(name));
+    }
+
+    /**
+     * Registers a battery voltage sensor. Code reaches it through {@code hardwareMap.voltageSensor}
+     * rather than by name, which is how the SDK exposes it.
+     */
+    public FakeVoltageSensor voltageSensor(double volts) {
+        FakeVoltageSensor sensor = new FakeVoltageSensor("battery", volts);
+        voltageSensors.add(sensor);
+        return sensor;
     }
 
     /** Registers a device built elsewhere. */
@@ -125,6 +137,14 @@ public final class LoopRunner {
                             HardwareDevice device = devices.get(invocation.getArgument(1));
                             return type.isInstance(device) ? device : null;
                         });
+
+        // voltageSensor is a plain public field on HardwareMap, not a get() call, so it has to be
+        // installed rather than stubbed. Without it any subsystem reading battery voltage NPEs.
+        @SuppressWarnings("unchecked")
+        HardwareMap.DeviceMapping<VoltageSensor> mapping =
+                mock(HardwareMap.DeviceMapping.class);
+        when(mapping.iterator()).thenAnswer(invocation -> voltageSensors.iterator());
+        hardwareMap.voltageSensor = mapping;
     }
 
     // ------------------------------------------------------------------ loop

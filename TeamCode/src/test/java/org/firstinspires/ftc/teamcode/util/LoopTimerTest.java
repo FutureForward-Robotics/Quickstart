@@ -64,4 +64,37 @@ class LoopTimerTest {
         t.tick(500 * MS);
         assertTrue(t.due(0, 250), "tick() must not consume the throttle");
     }
+
+    @Test
+    void countsLoopsFromOneSoItCanIdentifyThem() {
+        LoopTimer t = new LoopTimer();
+        assertEquals(0, t.count(), "no loop has run yet");
+
+        t.tick(0);
+        assertEquals(1, t.count(), "the first tick is loop 1, distinct from never-ticked");
+
+        t.tick(20 * MS);
+        t.tick(40 * MS);
+        assertEquals(3, t.count());
+    }
+
+    @Test
+    void theCountChangesEveryLoopSoACacheCanNotGoStale() {
+        LoopTimer t = new LoopTimer();
+        long seen = -1;
+        int recomputes = 0;
+
+        for (int loop = 0; loop < 5; loop++) {
+            t.tick(loop * 20L * MS);
+            // Two consumers ask per loop; only the first should have to recompute.
+            for (int consumer = 0; consumer < 2; consumer++) {
+                if (seen != t.count()) {
+                    seen = t.count();
+                    recomputes++;
+                }
+            }
+        }
+
+        assertEquals(5, recomputes, "once per loop, no matter how many consumers ask");
+    }
 }
