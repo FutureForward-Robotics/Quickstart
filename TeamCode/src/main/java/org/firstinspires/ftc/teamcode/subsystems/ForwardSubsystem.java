@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 
+import org.firstinspires.ftc.teamcode.util.RunLog;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +36,9 @@ public abstract class ForwardSubsystem extends SubsystemBase {
 
     public abstract void act();
 
+    /** Registers signals for the run log. Called once, after {@code configure()}. */
+    public void logSignals(RunLog log) {}
+
     @Override
     public final void periodic() {}
 
@@ -50,6 +55,12 @@ public abstract class ForwardSubsystem extends SubsystemBase {
     public static void actAll() {
         for (int i = 0; i < REGISTERED.size(); i++) {
             REGISTERED.get(i).act();
+        }
+    }
+
+    public static void registerSignals(RunLog log) {
+        for (int i = 0; i < REGISTERED.size(); i++) {
+            REGISTERED.get(i).logSignals(log);
         }
     }
 

@@ -1,15 +1,20 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.seattlesolvers.solverslib.command.CommandOpMode;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
 import com.seattlesolvers.solverslib.gamepad.GamepadEx;
 
 import org.firstinspires.ftc.teamcode.subsystems.ForwardSubsystem;
+import org.firstinspires.ftc.teamcode.util.CommandLogHooks;
 import org.firstinspires.ftc.teamcode.util.LoopTimer;
+import org.firstinspires.ftc.teamcode.util.RunLog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.LongSupplier;
 
 /**
  * Base OpMode. Owns Lynx bulk caching, gamepad polling and loop timing.
@@ -33,6 +38,8 @@ public abstract class ForwardOpMode extends CommandOpMode {
     private final List<LynxModule> hubs = new ArrayList<>();
     private final LoopTimer loopTimer = new LoopTimer();
 
+    private RunLog log;
+
     @Override
     public final void initialize() {
         CommandScheduler.getInstance().reset();
@@ -48,7 +55,18 @@ public abstract class ForwardOpMode extends CommandOpMode {
         operator = new GamepadEx(gamepad2);
 
         configure();
+
+        log = RunLog.openDefault(opModeName());
+        ForwardSubsystem.registerSignals(log);
+        logSignals(log);
+        CommandLogHooks.install(log);
     }
+
+    /**
+     * Register signals that belong to something outside the subsystem registry, such as a pure
+     * per-loop computation. Called once, after every subsystem has registered.
+     */
+    protected void logSignals(RunLog log) {}
 
     /** Build subsystems, set default commands, bind buttons. */
     protected abstract void configure();
@@ -67,6 +85,7 @@ public abstract class ForwardOpMode extends CommandOpMode {
         ForwardSubsystem.senseAll();
         super.run();
         ForwardSubsystem.actAll();
+        log.writeLoop((int) loopTimer.count());
     }
 
     private void refreshInputs() {
@@ -76,6 +95,41 @@ public abstract class ForwardOpMode extends CommandOpMode {
         driver.readButtons();
         operator.readButtons();
         loopTimer.tick(System.nanoTime());
+    }
+
+    /** Closes the run log. {@code CommandOpMode.runOpMode()} calls {@code end()} in a finally. */
+    @Override
+    public void end() {
+        if (log != null) {
+            log.close();
+        }
+        super.end();
+    }
+
+    /** Run log for this OpMode. Non-null after init; may be a disabled sink. */
+    protected RunLog log() {
+        return log;
+    }
+
+    /** Registered OpMode name, falling back to the class name as the SDK does. */
+    private String opModeName() {
+        TeleOp teleOp = getClass().getAnnotation(TeleOp.class);
+        if (teleOp != null && !teleOp.name().isEmpty()) {
+            return teleOp.name();
+        }
+        Autonomous autonomous = getClass().getAnnotation(Autonomous.class);
+        if (autonomous != null && !autonomous.name().isEmpty()) {
+            return autonomous.name();
+        }
+        return getClass().getSimpleName();
+    }
+
+    /**
+     * Identity of the current loop. Hand this to anything that computes once per loop outside the
+     * sense/act phases, so it can cache against the loop instead of being scheduled.
+     */
+    protected LongSupplier loopId() {
+        return loopTimer::count;
     }
 
     protected double dtSeconds() {

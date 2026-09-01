@@ -79,3 +79,9 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+# Pulled run logs and generated plots
+/logs/
+
+# Bytecode from the tools/ scripts
+__pycache__/

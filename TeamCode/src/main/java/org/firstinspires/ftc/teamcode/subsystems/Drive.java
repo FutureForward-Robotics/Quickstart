@@ -14,7 +14,9 @@ import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Route;
 import org.firstinspires.ftc.teamcode.field.Waypoint;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.util.MotionSource;
 import org.firstinspires.ftc.teamcode.util.PoseStore;
+import org.firstinspires.ftc.teamcode.util.RunLog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,7 @@ import java.util.function.DoubleSupplier;
  * carry a timeout. {@link #teleop} is the default command; a path command preempts it and the
  * scheduler restores it when the path ends.
  */
-public class Drive extends ForwardSubsystem {
+public class Drive extends ForwardSubsystem implements MotionSource {
 
     /** Path watchdog, milliseconds. */
     public static final long DEFAULT_PATH_TIMEOUT_MS = 8000;
@@ -66,10 +68,37 @@ public class Drive extends ForwardSubsystem {
     public void act() {
     }
 
+    /** Reads the pose cached by {@code follower.update()}, so logging adds no hardware traffic. */
+    @Override
+    public void logSignals(RunLog log) {
+        log.addSignal("drive.x", () -> follower.getPose().getX());
+        log.addSignal("drive.y", () -> follower.getPose().getY());
+        log.addSignal("drive.headingDeg", () -> Math.toDegrees(follower.getPose().getHeading()));
+        log.addFlag("drive.busy", follower::isBusy);
+        log.addSignal("drive.assists", () -> assists.size());
+    }
+
     // ---------------------------------------------------------------- state
 
+    @Override
     public Pose pose() {
         return follower.getPose();
+    }
+
+    /** Field-frame velocity, inches/second, from the pose cached by {@link #sense()}. */
+    @Override
+    public double velocityX() {
+        return follower.getVelocity().getXComponent();
+    }
+
+    @Override
+    public double velocityY() {
+        return follower.getVelocity().getYComponent();
+    }
+
+    /** Re-seeds odometry, for squaring up on a wall mid-match. */
+    public void setPose(Pose pose) {
+        follower.setPose(pose);
     }
 
     public double headingRad() {
