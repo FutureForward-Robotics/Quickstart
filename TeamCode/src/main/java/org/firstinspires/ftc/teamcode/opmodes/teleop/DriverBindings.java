@@ -14,9 +14,11 @@ public final class DriverBindings {
     private static final double PRECISION_SCALE = 0.35;
 
     public static void configure(Robot robot, GamepadEx driver, GamepadEx operator) {
+        // GamepadEx.getLeftY already negates the raw axis, so forward needs no minus; the X axes
+        // are not pre-negated and do.
         robot.drive.setDefaultCommand(
                 robot.drive.teleop(
-                        () -> -driver.getLeftY(),
+                        driver::getLeftY,
                         () -> -driver.getLeftX(),
                         () -> -driver.getRightX()));
 
