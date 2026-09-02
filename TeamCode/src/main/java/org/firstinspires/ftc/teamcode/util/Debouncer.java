@@ -24,6 +24,7 @@ public final class Debouncer {
     private final LongSupplier nanos;
 
     private boolean output;
+    private boolean started;
     private long lastChangeNanos;
 
     public Debouncer(double periodSeconds, Type type) {
@@ -38,12 +39,18 @@ public final class Debouncer {
         this.type = type;
         this.nanos = nanos;
         this.output = type == Type.FALLING;
-        this.lastChangeNanos = nanos.getAsLong();
     }
 
     /** Feed the raw input; returns the debounced value. Call once per loop. */
     public boolean calculate(boolean input) {
         long now = nanos.getAsLong();
+        if (!started) {
+            // The window starts at the first sample, not at construction: subsystems are built in
+            // init, which runs far longer than any debounce period, so seeding in the constructor
+            // let the first transition through with no hold at all.
+            started = true;
+            lastChangeNanos = now;
+        }
 
         if (input == output) {
             lastChangeNanos = now;

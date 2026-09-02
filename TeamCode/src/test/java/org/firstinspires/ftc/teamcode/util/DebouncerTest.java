@@ -37,6 +37,18 @@ class DebouncerTest {
     }
 
     @Test
+    void theWindowStartsAtTheFirstSampleNotAtConstruction() {
+        Debouncer d = debouncer(0.2, Debouncer.Type.RISING);
+
+        // A subsystem is built in init; init runs for as long as the team waits for Play.
+        advance(30);
+
+        assertFalse(d.calculate(true), "the first sample must still be held for the period");
+        advance(0.25);
+        assertTrue(d.calculate(true));
+    }
+
+    @Test
     void risingRestartsWhenTheInputDrops() {
         Debouncer d = debouncer(0.2, Debouncer.Type.RISING);
 
@@ -52,6 +64,7 @@ class DebouncerTest {
     @Test
     void risingPassesFallingEdgesStraightThrough() {
         Debouncer d = debouncer(0.2, Debouncer.Type.RISING);
+        d.calculate(true);
         advance(0.3);
         assertTrue(d.calculate(true));
 
