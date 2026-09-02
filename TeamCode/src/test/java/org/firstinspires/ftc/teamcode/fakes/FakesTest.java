@@ -96,7 +96,10 @@ class FakesTest {
 
         runner.loop();
 
-        assertEquals(700, lift.measured(), 1, "act() must run against this loop's reading");
+        assertEquals(700, lift.measured(), 1, "sense() read this loop's encoder");
+        // The discriminating observable: act() against measured = 700 and setpoint = 0 saturates
+        // negative, where act-then-sense would compute 0 against an unread encoder.
+        assertEquals(-1.0, motor.getPower(), 1e-9, "act() must run against this loop's reading");
     }
 
     @Test
@@ -172,6 +175,17 @@ class FakesTest {
 
         servo.setPosition(5.0);
         assertEquals(1.0, servo.getPosition(), 1e-9);
+    }
+
+    @Test
+    void servoReportsTheLogicalPositionUnderAScaledRange(LoopRunner runner) {
+        FakeServo servo = runner.servo("claw");
+        servo.scaleRange(0.2, 0.8);
+
+        servo.setPosition(0.7);
+
+        assertEquals(0.7, servo.getPosition(), 1e-9, "ServoImpl scales the reading back to [0,1]");
+        assertEquals(0.62, servo.commanded(), 1e-9, "the controller receives the scaled value");
     }
 
     @Test
