@@ -57,9 +57,16 @@ public abstract class ForwardOpMode extends CommandOpMode {
         configure();
 
         log = RunLog.openDefault(opModeName());
-        ForwardSubsystem.registerSignals(log);
-        logSignals(log);
-        CommandLogHooks.install(log);
+        try {
+            ForwardSubsystem.registerSignals(log);
+            logSignals(log);
+            CommandLogHooks.install(log);
+        } catch (RuntimeException e) {
+            // end() is unreachable from here, so an unclosed log would leak its writer thread and
+            // two open streams for the life of the app.
+            log.close();
+            throw e;
+        }
     }
 
     /**
@@ -97,7 +104,10 @@ public abstract class ForwardOpMode extends CommandOpMode {
         loopTimer.tick(System.nanoTime());
     }
 
-    /** Closes the run log. {@code CommandOpMode.runOpMode()} calls {@code end()} in a finally. */
+    /**
+     * Closes the run log. {@code CommandOpMode.runOpMode()} calls {@code end()} in a finally around
+     * the init and run loops only: a throw out of {@link #initialize()} never reaches it.
+     */
     @Override
     public void end() {
         if (log != null) {
