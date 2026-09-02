@@ -54,13 +54,17 @@ public final class RunLog implements AutoCloseable {
     private static final int TIME_DECIMALS = 3;
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
+    private static final int SIGNALS = 0;
+    private static final int EVENTS = 1;
+    private static final int META = 2;
+
     /** One queued line and the file it belongs to. */
     private static final class Entry {
-        final boolean event;
+        final int dest;
         final byte[] data;
 
-        Entry(boolean event, byte[] data) {
-            this.event = event;
+        Entry(int dest, byte[] data) {
+            this.dest = dest;
             this.data = data;
         }
     }
@@ -95,6 +99,7 @@ public final class RunLog implements AutoCloseable {
     private boolean closed;
     private volatile boolean stopping;
     private volatile boolean capped;
+    private boolean warned;
 
     /** Log folder on internal storage. Must be under {@link AppUtil#FIRST_FOLDER} to be writable. */
     public static RunLog openDefault(String opModeName) {
@@ -168,7 +173,7 @@ public final class RunLog implements AutoCloseable {
         line.append(",\"opMode\":\"");
         appendEscaped(line, opModeName);
         line.append("\"}\n");
-        enqueue(true, line);
+        enqueue(EVENTS, line);
     }
 
     // ------------------------------------------------------------------ signals
@@ -229,13 +234,13 @@ public final class RunLog implements AutoCloseable {
         }
         if (!frozen) {
             frozen = true;
-            writeMeta();
+            enqueue(META, buildMeta());
             StringBuilder header = new StringBuilder(128).append("t_s,loop");
             for (int i = 0; i < columns.size(); i++) {
                 header.append(',').append(columns.get(i));
             }
             header.append('\n');
-            enqueue(false, header);
+            enqueue(SIGNALS, header);
         }
         row.setLength(0);
         appendFixed(row, elapsedSeconds(), TIME_DECIMALS);
@@ -250,7 +255,7 @@ public final class RunLog implements AutoCloseable {
         }
         row.append('\n');
         rows++;
-        enqueue(false, row);
+        enqueue(SIGNALS, row);
     }
 
     /** Writes one free-form event, for example {@code event("note", "driver took over")}. */
@@ -269,7 +274,7 @@ public final class RunLog implements AutoCloseable {
             line.append('"');
         }
         line.append("}\n");
-        enqueue(true, line);
+        enqueue(EVENTS, line);
     }
 
     /** Writes a command lifecycle event: {@code start}, {@code interrupt} or {@code finish}. */
@@ -281,7 +286,7 @@ public final class RunLog implements AutoCloseable {
         line.append(",\"name\":\"");
         appendEscaped(line, name);
         line.append("\",\"id\":").append(id).append("}\n");
-        enqueue(true, line);
+        enqueue(EVENTS, line);
     }
 
     public boolean isEnabled() {
@@ -314,10 +319,10 @@ public final class RunLog implements AutoCloseable {
                     .append(",\"bytes\":")
                     .append(bytesWritten.get())
                     .append("}\n");
-            offer(new Entry(true, bytes(line)));
+            offer(new Entry(EVENTS, bytes(line)));
         }
         if (!frozen) {
-            writeMeta();
+            enqueue(META, buildMeta());
         }
         stopping = true;
         writer.shutdown();
@@ -395,8 +400,12 @@ public final class RunLog implements AutoCloseable {
         if (capped) {
             return;
         }
+        if (entry.dest == META) {
+            writeMetaFile(entry.data);
+            return;
+        }
         try {
-            OutputStream out = entry.event ? events : signals;
+            OutputStream out = entry.dest == EVENTS ? events : signals;
             out.write(entry.data);
             if (bytesWritten.addAndGet(entry.data.length) > MAX_BYTES) {
                 capped = true;
@@ -408,6 +417,7 @@ public final class RunLog implements AutoCloseable {
         } catch (IOException e) {
             // Storage is gone or full: stop writing rather than throw on every loop.
             capped = true;
+            warnOnce("RunLog write failed, logging stopped: " + e);
         }
     }
 
@@ -417,6 +427,18 @@ public final class RunLog implements AutoCloseable {
             events.flush();
         } catch (IOException e) {
             capped = true;
+            warnOnce("RunLog flush failed, logging stopped: " + e);
+        }
+    }
+
+    /**
+     * One Driver Station warning per run. Writer thread only. Without this a full or unmounted
+     * /sdcard stops logging silently, and the result is indistinguishable from a hard kill.
+     */
+    private void warnOnce(String message) {
+        if (!warned) {
+            warned = true;
+            RobotLog.addGlobalWarningMessage(message);
         }
     }
 
@@ -430,8 +452,8 @@ public final class RunLog implements AutoCloseable {
         return line;
     }
 
-    private void enqueue(boolean event, StringBuilder line) {
-        offer(new Entry(event, bytes(line)));
+    private void enqueue(int dest, StringBuilder line) {
+        offer(new Entry(dest, bytes(line)));
     }
 
     private void offer(Entry entry) {
@@ -440,7 +462,8 @@ public final class RunLog implements AutoCloseable {
         }
     }
 
-    private void writeMeta() {
+    /** Builds meta.json on the calling thread; the bytes are written by the writer. */
+    private StringBuilder buildMeta() {
         StringBuilder meta = new StringBuilder(256);
         meta.append("{\"schema\":1,\"opMode\":\"");
         appendEscaped(meta, opModeName);
@@ -453,13 +476,22 @@ public final class RunLog implements AutoCloseable {
             meta.append('"');
         }
         meta.append("]}\n");
+        return meta;
+    }
+
+    /**
+     * Writer thread only: opens, writes and fsyncs meta.json. This is why the meta bytes travel
+     * through the queue instead of being written where they are built, which would put an fsync on
+     * the control loop in the first loop after Play.
+     */
+    private void writeMetaFile(byte[] data) {
         FileOutputStream out = null;
         try {
             out = new FileOutputStream(new File(dir, "meta.json"));
-            out.write(bytes(meta));
+            out.write(data);
             out.getFD().sync();
         } catch (IOException e) {
-            RobotLog.addGlobalWarningMessage("RunLog meta.json failed: " + e);
+            warnOnce("RunLog meta.json failed: " + e);
         } finally {
             closeQuietly(out);
         }
