@@ -51,8 +51,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         adb = find_adb(args.adb)
-        ensure_device(adb, args.hub)
-        remote_runs = list_remote_runs(adb)
+        serial = ensure_device(adb, args.hub)
+        remote_runs = list_remote_runs(adb, serial)
     except AdbError as exc:
         print(str(exc), file=sys.stderr)
         return exc.code
@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{name} skipped (already local)")
             continue
         try:
-            pull_run(adb, name, dest)
+            pull_run(adb, name, dest, serial)
         except AdbError as exc:
             print(str(exc), file=sys.stderr)
             return exc.code
@@ -86,7 +86,12 @@ def main(argv: list[str] | None = None) -> int:
         note = "" if (local / "meta.json").exists() else " (no meta.json)"
         print(f"{name} pulled{note}")
         if args.delete_remote:
-            run_adb(adb, ["shell", "rm", "-rf", f"{runlog.REMOTE_LOGS}/{name}"], SHELL_TIMEOUT_S)
+            run_adb(
+                adb,
+                ["shell", "rm", "-rf", f"{runlog.REMOTE_LOGS}/{name}"],
+                SHELL_TIMEOUT_S,
+                serial,
+            )
             print(f"{name} deleted from hub")
 
     print(f"{pulled} pulled, {len(remote_runs)} on hub")
@@ -125,12 +130,11 @@ def resolve_executable(candidate: str) -> str | None:
     return shutil.which(candidate)
 
 
-def run_adb(adb: str, args: list[str], timeout: int) -> tuple[int, str]:
+def run_adb(adb: str, args: list[str], timeout: int, serial: str | None = None) -> tuple[int, str]:
     """adb output is \\r\\n terminated; strip the \\r or every parse breaks on Windows."""
+    argv = [adb, *(["-s", serial] if serial else []), *args]
     try:
-        done = subprocess.run(
-            [adb, *args], capture_output=True, text=True, timeout=timeout, check=False
-        )
+        done = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         raise AdbError(f"adb {' '.join(args)} timed out after {timeout}s", 4)
     return done.returncode, (done.stdout + done.stderr).replace("\r", "")
@@ -146,35 +150,54 @@ def attached_devices(adb: str) -> list[str]:
     return devices
 
 
-def ensure_device(adb: str, hub: str) -> None:
-    if attached_devices(adb):
-        return
-    run_adb(adb, ["connect", hub], SHELL_TIMEOUT_S)
-    if attached_devices(adb):
-        return
+def ensure_device(adb: str, hub: str) -> str | None:
+    """Returns the serial to address, or None when a single device makes ``-s`` unnecessary."""
+    devices = attached_devices(adb)
+    if not devices:
+        run_adb(adb, ["connect", hub], SHELL_TIMEOUT_S)
+        devices = attached_devices(adb)
+    if len(devices) == 1:
+        return None
+    if len(devices) > 1:
+        # Every unqualified call would fail with "more than one device/emulator". A Driver Station
+        # phone next to the hub is the usual cause.
+        if hub in devices:
+            return hub
+        raise AdbError(
+            "more than one device attached: "
+            + ", ".join(devices)
+            + "; unplug the others or pass --hub with the one you want",
+            4,
+        )
     raise AdbError(
         f"no device; plug in USB or join the hub's wifi (tried {hub})",
         4,
     )
 
 
-def list_remote_runs(adb: str) -> list[str]:
-    code, out = run_adb(adb, ["shell", "ls", "-1", runlog.REMOTE_LOGS], SHELL_TIMEOUT_S)
-    if "No such file" in out or code != 0:
+def list_remote_runs(adb: str, serial: str | None) -> list[str]:
+    code, out = run_adb(
+        adb, ["shell", "ls", "-1", runlog.REMOTE_LOGS], SHELL_TIMEOUT_S, serial
+    )
+    if "No such file" in out:
         raise AdbError(
             f"no logs at {runlog.REMOTE_LOGS}; has an OpMode run since the logger was deployed?",
             5,
         )
+    if code != 0:
+        raise AdbError(f"adb shell ls {runlog.REMOTE_LOGS} failed: {out.strip()}", 4)
     names = [name for name in out.split() if runlog.RUN_RE.match(name)]
     return sorted(set(names))
 
 
-def pull_run(adb: str, name: str, dest: Path) -> None:
+def pull_run(adb: str, name: str, dest: Path, serial: str | None) -> None:
     code, out = run_adb(
-        adb, ["pull", f"{runlog.REMOTE_LOGS}/{name}", str(dest)], PULL_TIMEOUT_S
+        adb, ["pull", f"{runlog.REMOTE_LOGS}/{name}", str(dest)], PULL_TIMEOUT_S, serial
     )
     if code != 0:
-        print(out.strip(), file=sys.stderr)
+        # Must raise: main's completeness check reads the destination, which under --force can
+        # still hold an older complete copy, and --delete-remote would then drop the fresh one.
+        raise AdbError(f"adb pull {name} failed: {out.strip()}", 4)
 
 
 def is_complete(run_dir: Path) -> bool:

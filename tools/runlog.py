@@ -138,7 +138,17 @@ def _load_signals(
         return [], [], [], {}, warnings
 
     header = [name.strip() for name in rows[0]]
-    signal_names = [c for c in header if c not in (TIME_COLUMN, LOOP_COLUMN)]
+    # By index, not by name: a header carrying the same name twice would otherwise collapse into
+    # one dict key and append two values per row, mis-shaping the series against t.
+    signal_index: dict[str, int] = {}
+    for position, name in enumerate(header):
+        if name in (TIME_COLUMN, LOOP_COLUMN):
+            continue
+        if name in signal_index:
+            warnings.append(f"duplicate column {name}; keeping the leftmost")
+            continue
+        signal_index[name] = position
+    signal_names = list(signal_index)
     series: dict[str, list[float | None]] = {name: [] for name in signal_names}
     t: list[float] = []
     loops: list[int | None] = []
@@ -162,7 +172,7 @@ def _load_signals(
         t.append(time_value)
         loops.append(_to_int(record.get(LOOP_COLUMN, "")))
         for name in signal_names:
-            text = record.get(name, "")
+            text = raw[signal_index[name]]
             value = _to_float(text)
             if value is None and text.strip() != "" and name not in bad_columns:
                 bad_columns.add(name)
