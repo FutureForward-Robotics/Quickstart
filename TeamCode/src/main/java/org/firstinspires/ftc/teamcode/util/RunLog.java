@@ -121,7 +121,7 @@ public final class RunLog implements AutoCloseable {
             signalsFile = new FileOutputStream(new File(dir, "signals.csv"));
             eventsFile = new FileOutputStream(new File(dir, "events.jsonl"));
             RunLog log = new RunLog(dir, name, signalsFile, eventsFile);
-            prune(parentDir);
+            prune(parentDir, dir);
             log.start();
             return log;
         } catch (IOException | RuntimeException e) {
@@ -212,6 +212,9 @@ public final class RunLog implements AutoCloseable {
         }
         if (frozen) {
             throw new IllegalStateException("signals are frozen after the first row");
+        }
+        if (columns.contains(name)) {
+            throw new IllegalArgumentException("duplicate signal name: " + name);
         }
         columns.add(name);
         samplers.add(sampler);
@@ -318,16 +321,29 @@ public final class RunLog implements AutoCloseable {
         }
         stopping = true;
         writer.shutdown();
-        try {
-            if (!writer.awaitTermination(STOP_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                writer.shutdownNow();
-            }
-        } catch (InterruptedException e) {
+        boolean drained = awaitWriter();
+        if (!drained) {
             writer.shutdownNow();
-            Thread.currentThread().interrupt();
+            drained = awaitWriter();
+        }
+        if (!drained) {
+            // The writer may still be inside a write, so closing the streams under it would
+            // corrupt the tail rather than save it.
+            RobotLog.addGlobalWarningMessage("RunLog writer did not stop; log tail lost");
+            return;
         }
         syncAndClose(signals, signalsFile);
         syncAndClose(events, eventsFile);
+    }
+
+    /** Waits {@link #STOP_TIMEOUT_MS} for the writer to finish, preserving the interrupt. */
+    private boolean awaitWriter() {
+        try {
+            return writer.awaitTermination(STOP_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     // ------------------------------------------------------------------ writer thread
@@ -345,7 +361,7 @@ public final class RunLog implements AutoCloseable {
     }
 
     private void writerLoop() {
-        long lastFlushMs = System.currentTimeMillis();
+        long lastFlushNanos = System.nanoTime();
         boolean interrupted = false;
         while (true) {
             Entry entry;
@@ -364,10 +380,10 @@ public final class RunLog implements AutoCloseable {
                 writeEntry(entry);
                 continue;
             }
-            long nowMs = System.currentTimeMillis();
-            if (nowMs - lastFlushMs >= FLUSH_INTERVAL_MS) {
+            long nowNanos = System.nanoTime();
+            if (nowNanos - lastFlushNanos >= FLUSH_INTERVAL_MS * 1_000_000L) {
                 flushQuietly();
-                lastFlushMs = nowMs;
+                lastFlushNanos = nowNanos;
             }
             if (stopping || interrupted) {
                 return;
@@ -487,15 +503,23 @@ public final class RunLog implements AutoCloseable {
         return line.toString().getBytes(UTF_8);
     }
 
-    /** Keeps the newest {@link #MAX_RUNS} run directories, deleting older ones with contents. */
-    private static void prune(File parentDir) {
+    /**
+     * Keeps the newest {@link #MAX_RUNS} run directories, deleting older ones with contents.
+     * {@code current} is never deleted: the hub clock can read earlier than existing runs, which
+     * would otherwise sort the just-created directory first and unlink the run being written.
+     */
+    private static void prune(File parentDir, File current) {
         File[] children = parentDir.listFiles(File::isDirectory);
         if (children == null || children.length <= MAX_RUNS) {
             return;
         }
         Arrays.sort(children, (a, b) -> a.getName().compareTo(b.getName()));
-        for (int i = 0; i < children.length - MAX_RUNS; i++) {
+        for (int i = 0, over = children.length - MAX_RUNS; i < children.length && over > 0; i++) {
+            if (children[i].equals(current)) {
+                continue;
+            }
             deleteRecursively(children[i]);
+            over--;
         }
     }
 
@@ -517,15 +541,17 @@ public final class RunLog implements AutoCloseable {
 
     /**
      * Appends {@code value} with exactly {@code decimals} digits after the point, allocating
-     * nothing. NaN and infinity append nothing, leaving the CSV field empty.
+     * nothing. Appends nothing, leaving the CSV field empty, for NaN, infinity, and any magnitude
+     * whose scaled value would not fit a long.
      */
     private static void appendFixed(StringBuilder out, double value, int decimals) {
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
-            return;
-        }
         long scale = 1;
         for (int i = 0; i < decimals; i++) {
             scale *= 10;
+        }
+        // Negated so NaN, which fails every comparison, is rejected here too.
+        if (!(Math.abs(value) < (double) Long.MAX_VALUE / scale)) {
+            return;
         }
         long scaled = Math.round(value * scale);
         if (scaled < 0) {

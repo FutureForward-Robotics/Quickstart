@@ -184,4 +184,48 @@ class RunLogTest {
 
         assertEquals(0, log.dropped());
     }
+
+    @Test
+    void duplicateSignalNamesAreRejected() {
+        RunLog log = RunLog.open(logDir, "Auto");
+        log.addSignal("lift.pos", () -> 1);
+
+        assertThrows(IllegalArgumentException.class, () -> log.addSignal("lift.pos", () -> 2));
+        assertThrows(IllegalArgumentException.class, () -> log.addFlag("lift.pos", () -> true));
+        log.close();
+    }
+
+    @Test
+    void magnitudesTooLargeToScaleLeaveTheFieldEmpty() throws IOException {
+        RunLog log = RunLog.open(logDir, "Auto");
+        log.addSignal("big", () -> 1e15);
+        log.addSignal("negBig", () -> -1e15);
+        log.addSignal("ok", () -> 1.5);
+        log.writeLoop(0);
+        log.close();
+
+        String[] fields = lines(log, "signals.csv").get(1).split(",", -1);
+        assertEquals("", fields[2], "1e15 overflows the scaled long, so no digits are written");
+        assertEquals("", fields[3]);
+        assertEquals("1.5000", fields[4], "a normal value in the same row is unaffected");
+    }
+
+    @Test
+    void pruneKeepsTheRunItJustCreated() throws IOException {
+        // Names sort by timestamp, so a hub clock reading earlier than every existing run puts the
+        // new directory first. It must survive anyway.
+        for (int i = 0; i < 30; i++) {
+            File old = new File(logDir, String.format("29990101-%06d-Old", i));
+            assertTrue(old.mkdirs());
+        }
+
+        RunLog log = RunLog.open(logDir, "Auto");
+        log.addSignal("a", () -> 1);
+        log.writeLoop(0);
+        log.close();
+
+        assertTrue(log.isEnabled(), "the run opened");
+        assertTrue(log.directory().isDirectory(), "the new run directory was not pruned");
+        assertEquals(2, lines(log, "signals.csv").size(), "and it is still readable");
+    }
 }
