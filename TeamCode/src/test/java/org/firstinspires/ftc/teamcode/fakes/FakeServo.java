@@ -3,11 +3,18 @@ package org.firstinspires.ftc.teamcode.fakes;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoController;
 
-/** Servo that records commanded position. Range is clamped as the SDK does. */
+/**
+ * Servo that records commanded position. Range is clamped as the SDK does.
+ *
+ * <p>{@link #getPosition()} returns the logical position, matching {@code ServoImpl}, which scales
+ * the controller value back into [0, 1]. The scaled command sent to the hardware is
+ * {@link #commanded()}.
+ */
 public class FakeServo implements Servo {
 
     private final String name;
     private double position;
+    private double commanded;
     private Direction direction = Direction.FORWARD;
     private double scaleMin = 0;
     private double scaleMax = 1;
@@ -18,13 +25,18 @@ public class FakeServo implements Servo {
 
     @Override
     public void setPosition(double p) {
-        double clamped = Math.max(0, Math.min(1, p));
-        position = scaleMin + clamped * (scaleMax - scaleMin);
+        position = Math.max(0, Math.min(1, p));
+        commanded = scaleMin + position * (scaleMax - scaleMin);
     }
 
     @Override
     public double getPosition() {
         return position;
+    }
+
+    /** Scaled value the controller would receive, which {@link #scaleRange} shifts. */
+    public double commanded() {
+        return commanded;
     }
 
     @Override
