@@ -1,0 +1,97 @@
+package org.firstinspires.ftc.teamcode.opmodes.test;
+
+import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.seattlesolvers.solverslib.command.InstantCommand;
+import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
+
+import org.firstinspires.ftc.teamcode.Robot;
+import org.firstinspires.ftc.teamcode.field.Alliance;
+import org.firstinspires.ftc.teamcode.field.Field;
+import org.firstinspires.ftc.teamcode.opmodes.ForwardOpMode;
+import org.firstinspires.ftc.teamcode.opmodes.teleop.DriverBindings;
+import org.firstinspires.ftc.teamcode.subsystems.Vision;
+import org.firstinspires.ftc.teamcode.util.LimelightCamera;
+import org.firstinspires.ftc.teamcode.util.RunLog;
+
+/**
+ * Drives normally and compares the camera's field pose against odometry. This is the once-a-season
+ * check {@link Field#toPedro} asks for: park on a known spot, read both, and confirm they agree.
+ *
+ * <p>A constant offset means the camera pose in the Limelight UI is wrong. Swapped or mirrored axes
+ * mean the team's Pedro frame is rotated relative to the field frame, which is a change to {@code
+ * Field.toPedro}. Y re-seeds odometry from the camera, refusing while the robot is moving.
+ */
+@TeleOp(name = "Vision Check", group = "test")
+public class VisionCheck extends ForwardOpMode {
+
+    /** Re-seeding while moving bakes the frame's age into the pose. Inches per second. */
+    private static final double SEED_SPEED_LIMIT = 4.0;
+
+    private Robot robot;
+    private Vision vision;
+
+    private String lastSeed = "none yet";
+
+    @Override
+    protected void configure() {
+        robot = new Robot(hardwareMap, Alliance.RED);
+        // After the drivetrain, so it senses after it and orients the camera with this loop's pose.
+        vision = new Vision(new LimelightCamera(hardwareMap, "limelight"), robot.drive);
+
+        DriverBindings.configure(robot, driver, operator);
+        driver.getGamepadButton(GamepadKeys.Button.Y).whenPressed(new InstantCommand(this::seed));
+    }
+
+    @Override
+    protected void logSignals(RunLog log) {
+        vision.logSignals(log);
+    }
+
+    private void seed() {
+        Pose seen = vision.fieldPose();
+        if (seen == null) {
+            lastSeed = "refused: no trusted pose";
+            return;
+        }
+        if (speed() > SEED_SPEED_LIMIT) {
+            lastSeed = String.format("refused: moving at %.1f in/s", speed());
+            return;
+        }
+        robot.drive.setPose(seen);
+        lastSeed = String.format("seeded %s", seen);
+    }
+
+    private double speed() {
+        return Math.hypot(robot.drive.velocityX(), robot.drive.velocityY());
+    }
+
+    @Override
+    public void run() {
+        super.run();
+        if (!telemetryDue(250)) {
+            return;
+        }
+        Pose odometry = robot.drive.pose();
+        Pose seen = vision.fieldPose();
+
+        telemetry.addData("loop", "%.0f Hz", loopHz());
+        telemetry.addData("speed", "%.1f in/s", speed());
+        telemetry.addData("odometry", odometry);
+        telemetry.addData("camera", seen == null ? "no trusted pose" : seen.toString());
+        if (seen != null) {
+            telemetry.addData(
+                    "delta",
+                    "x %+.1f  y %+.1f  heading %+.1f deg",
+                    seen.getX() - odometry.getX(),
+                    seen.getY() - odometry.getY(),
+                    Math.toDegrees(Field.normalize(seen.getHeading() - odometry.getHeading())));
+        }
+        telemetry.addData("hasTarget", vision.hasTarget());
+        telemetry.addData("tags", vision.sample().tagCount());
+        telemetry.addData("avgTagDist", "%.1f in", vision.sample().avgTagDistanceIn());
+        telemetry.addData("staleness", "%d ms", vision.sample().stalenessMs());
+        telemetry.addData("Y to seed", lastSeed);
+        telemetry.update();
+    }
+}
