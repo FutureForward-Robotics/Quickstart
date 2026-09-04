@@ -1,5 +1,10 @@
 package org.firstinspires.ftc.teamcode.field;
 
+import com.pedropathing.geometry.Pose;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+
 /**
  * Field geometry.
  *
@@ -23,5 +28,21 @@ public final class Field {
             a += 2 * Math.PI;
         }
         return a - Math.PI;
+    }
+
+    /**
+     * Converts an FTC field pose to Pedro's frame: centre origin to corner origin, the position's
+     * own {@link DistanceUnit} to inches, and degrees to radians.
+     *
+     * <p>Assumes FTC +X is Pedro +X and FTC +Y is Pedro +Y. Check that once a season by standing
+     * the robot on a known spot and comparing this against odometry; a mismatch means the team's
+     * Pedro frame is rotated relative to the field frame.
+     */
+    public static Pose toPedro(Position position, double yawDegrees) {
+        Position inches = position.toUnit(DistanceUnit.INCH);
+        return new Pose(
+                inches.x + WIDTH_IN / 2,
+                inches.y + WIDTH_IN / 2,
+                normalize(Math.toRadians(yawDegrees)));
     }
 }
