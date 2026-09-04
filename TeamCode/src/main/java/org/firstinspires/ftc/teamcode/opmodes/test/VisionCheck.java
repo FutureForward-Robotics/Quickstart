@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Field;
 import org.firstinspires.ftc.teamcode.opmodes.ForwardOpMode;
 import org.firstinspires.ftc.teamcode.opmodes.teleop.DriverBindings;
+import org.firstinspires.ftc.teamcode.subsystems.PoseFusion;
 import org.firstinspires.ftc.teamcode.subsystems.Vision;
 import org.firstinspires.ftc.teamcode.util.LimelightCamera;
 import org.firstinspires.ftc.teamcode.util.RunLog;
@@ -20,16 +21,20 @@ import org.firstinspires.ftc.teamcode.util.RunLog;
  *
  * <p>A constant offset means the camera pose in the Limelight UI is wrong. Swapped or mirrored axes
  * mean the team's Pedro frame is rotated relative to the field frame, which is a change to {@code
- * Field.toPedro}. Y re-seeds odometry from the camera, refusing while the robot is moving.
+ * Field.toPedro}. A delta that grows with speed means latency, so compare at rest.
+ *
+ * <p>{@link PoseFusion} is running, so the delta should settle toward zero on its own; Y seeds the
+ * whole correction at once for when it starts too far out to converge.
  */
 @TeleOp(name = "Vision Check", group = "test")
 public class VisionCheck extends ForwardOpMode {
 
-    /** Re-seeding while moving bakes the frame's age into the pose. Inches per second. */
+    /** Seeding while moving bakes the frame's age into the pose. Inches per second. */
     private static final double SEED_SPEED_LIMIT = 4.0;
 
     private Robot robot;
     private Vision vision;
+    private PoseFusion fusion;
 
     private String lastSeed = "none yet";
 
@@ -38,6 +43,8 @@ public class VisionCheck extends ForwardOpMode {
         robot = new Robot(hardwareMap, Alliance.RED);
         // After the drivetrain, so it senses after it and orients the camera with this loop's pose.
         vision = new Vision(new LimelightCamera(hardwareMap, "limelight"), robot.drive);
+        // After the camera, so a correction acts on this loop's frame.
+        fusion = new PoseFusion(vision, robot.drive, robot.drive::setPose, System::nanoTime);
 
         DriverBindings.configure(robot, driver, operator);
         driver.getGamepadButton(GamepadKeys.Button.Y).whenPressed(new InstantCommand(this::seed));
@@ -46,6 +53,7 @@ public class VisionCheck extends ForwardOpMode {
     @Override
     protected void logSignals(RunLog log) {
         vision.logSignals(log);
+        fusion.logSignals(log);
     }
 
     private void seed() {
@@ -81,7 +89,7 @@ public class VisionCheck extends ForwardOpMode {
         telemetry.addData("camera", seen == null ? "no trusted pose" : seen.toString());
         if (seen != null) {
             telemetry.addData(
-                    "delta",
+                    "delta now",
                     "x %+.1f  y %+.1f  heading %+.1f deg",
                     seen.getX() - odometry.getX(),
                     seen.getY() - odometry.getY(),
@@ -91,6 +99,9 @@ public class VisionCheck extends ForwardOpMode {
         telemetry.addData("tags", vision.sample().tagCount());
         telemetry.addData("avgTagDist", "%.1f in", vision.sample().avgTagDistanceIn());
         telemetry.addData("staleness", "%d ms", vision.sample().stalenessMs());
+        telemetry.addData(
+                "fusion", "%d applied, %d rejected", fusion.corrections(), fusion.rejections());
+        telemetry.addData("error at capture", "%.1f in", fusion.lastErrorIn());
         telemetry.addData("Y to seed", lastSeed);
         telemetry.update();
     }
