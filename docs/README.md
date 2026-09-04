@@ -48,4 +48,3 @@ python3 tools/plot_run.py --latest
 | `field/` | Field geometry: waypoints, alliance mirroring, path building |
 | `util/` | Reusable helpers with no hardware of their own |
 | `pedroPathing/` | Pedro Pathing constants and tuning OpModes |
-| `control/` | Reserved and currently empty |
