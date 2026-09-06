@@ -10,8 +10,8 @@ The camera supports two uses with different setup requirements.
 turn until that angle is zero.
 
 **Getting the robot's position on the field** needs the field map, the camera's mounting position, and
-a heading that agrees with the field coordinate system. If any of them is wrong, the camera reports a
-position that looks reasonable and is not correct. Do this second, and check it before you rely on it.
+a heading that agrees with the field coordinate system. If any of them is wrong, the camera reports
+an incorrect position that still looks reasonable. Do this second, and check it before you rely on it.
 
 ## Setup
 
@@ -119,8 +119,8 @@ Build it after `Vision`. It does three things:
 2. Applies a quarter of the disagreement per frame instead of all of it. Setting the pose in one jump
    makes Pedro's next velocity calculation measure the jump as motion, and the follower reacts to
    that velocity.
-3. Ignores a frame that disagrees with odometry by more than 24 inches, which is what a bad tag
-   solution looks like.
+3. Ignores a frame that disagrees with odometry by more than 24 inches, the signature of a bad tag
+   solution.
 
 Heading is not corrected. The camera's MegaTag2 mode is given the robot's heading and solves position
 using it, so the heading it reports back is the one it was given.
@@ -147,13 +147,13 @@ fusion            84 applied, 0 rejected
 error at capture  0.5 in
 ```
 
-| What you see | What it means |
+| Observation | Cause |
 | --- | --- |
 | `no trusted pose`, tags 0 | Wrong pipeline, no tag in view, or no field map uploaded |
 | A constant offset in x and y | The camera's mounting position in the web interface is wrong |
 | x and y swapped, or one sign flipped | Pedro's frame is rotated relative to the field frame. Fix `Field.toPedro`. |
 | Heading off by a fixed amount | Odometry was started from the wrong heading |
-| `delta now` large but `error at capture` small | Normal while driving. This is latency, and it is being handled. |
+| `delta now` large but `error at capture` small | Normal while driving; latency is being compensated. |
 | Everything rejected, nothing applied | The disagreement is over 24 inches. Check the axis mapping first. |
 
 Press Y to set odometry to the camera's estimate in one step. It refuses above 4 inches per second,
@@ -164,7 +164,7 @@ because a moving robot bakes the frame's age into the pose.
 | Constant | Default | When to change it |
 | --- | --- | --- |
 | `Vision.MAX_STALENESS_MS` | 100 | Rarely. A frame older than this is ignored. |
-| `Vision.MAX_POSE_DISTANCE_IN` | 96 | Set it from the `avgTagDist` values you actually see. The default is a guess. |
+| `Vision.MAX_POSE_DISTANCE_IN` | 96 | Set it from the `avgTagDist` values you see on this year's field. |
 | `PoseFusion.TRANSLATION_GAIN` | 0.25 | Lower it if the robot twitches when a correction lands. |
 | `PoseFusion.MAX_ERROR_IN` | 24 | Lower it once you know your normal error, to reject bad solutions sooner. |
 | `PoseFusion.HEADING_GAIN` | 0 | Leave at zero while using MegaTag2. |

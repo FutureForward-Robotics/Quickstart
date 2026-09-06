@@ -19,9 +19,9 @@ public class TeleOpRed extends MatchTeleOp {
 
 `initialize()` is final. It resets the command scheduler, clears the subsystem registry, sets up bulk
 caching and the gamepads, opens the run log, and then calls your `configure()`. The order matters,
-which is why you cannot override it.
+so you cannot override it.
 
-Methods you can use inside an OpMode:
+Methods available inside an OpMode:
 
 | Method | Returns |
 | --- | --- |
@@ -95,8 +95,8 @@ constructed in. Splitting the phases removes that ordering problem.
 ### Construction order
 
 Construction order sets the order of `sense()` and `act()` calls. This only matters when one
-subsystem reads a value another subsystem produced during its own `sense()`. The camera is the
-example: it needs the drivetrain's heading, so it is built after the drivetrain.
+subsystem reads a value another subsystem produced during its own `sense()`. `Vision` needs the
+drivetrain's heading, so it is built after the drivetrain.
 
 ```java
 robot = new Robot(hardwareMap, alliance());        // builds Drive

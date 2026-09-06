@@ -1,8 +1,8 @@
 # Writing Tests
 
-You can run the robot loop on your computer, with fake motors and sensors, and check that a mechanism
-behaves the way you expect. This catches sign errors, state machine mistakes, and timing bugs before
-you get to the field.
+The robot loop runs on your computer, with fake motors and sensors, so you can check that a
+mechanism behaves the way you expect. This catches sign errors, state machine mistakes, and timing
+bugs before you get to the field.
 
 Run all the tests:
 
@@ -96,12 +96,12 @@ own clock as the loop runs.
 
 ## Assertions
 
-A test should fail if the behavior it names is broken. This is easy to get wrong. If a test asserts a
-value that some other code path also produces, it passes even when the mechanism is broken.
+A test should fail if the behavior it names is broken. If a test asserts a value that some other
+code path also produces, it passes even when the mechanism is broken.
 
 For example, checking that sense runs before act by asserting the stored sensor reading does not
-work, because `sense()` stores that reading in either order. The value that distinguishes the two
-orderings is the motor output, because that is computed from the reading:
+work, because `sense()` stores that reading in either order. The motor output is computed from the
+reading, so it differs between the two orderings:
 
 ```java
 motor.setEncoder(700);
@@ -116,9 +116,8 @@ passes, the test is not testing the fix.
 
 ## Limitations
 
-The fakes are simple on purpose. They do not model motor inertia, battery sag under load, encoder
-noise, or CAN and I2C timing. `FakeMotor` ignores `RunMode`, so a test cannot catch a missing
-`RUN_WITHOUT_ENCODER` after an encoder reset.
+The fakes model a small subset of hardware behavior. They do not model motor inertia, battery sag
+under load, encoder noise, or CAN and I2C timing. `FakeMotor` ignores `RunMode`, so a test cannot
+catch a missing `RUN_WITHOUT_ENCODER` after an encoder reset.
 
-A passing test means the logic is right. It does not mean the mechanism works. You still have to test
-on the field.
+A passing test means the logic is right. Mechanism behavior still needs a run on the field.

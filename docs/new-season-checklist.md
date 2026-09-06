@@ -1,6 +1,6 @@
 # New Season Checklist
 
-Work through this when the new game is released. Most of it is one line per item.
+Work through this when the new game is released.
 
 ## Field geometry
 
@@ -11,8 +11,8 @@ are a mirror image or a 180 degree rotation. Set `Field.SYMMETRY` in `field/Fiel
 public static final FieldSymmetry SYMMETRY = FieldSymmetry.MIRROR_X;
 ```
 
-This is the default used to derive blue positions from red ones. Getting it wrong makes every blue
-autonomous drive to the wrong place, so check it before writing any waypoints.
+The symmetry is the default used to derive blue positions from red ones. Getting it wrong makes
+every blue autonomous drive to the wrong place, so check it before writing any waypoints.
 
 **2. Check the field width.** `Field.WIDTH_IN` is 144 inches for a standard field. It has not changed
 in years, but confirm it.
@@ -24,7 +24,7 @@ static final Waypoint START = Waypoint.red("start", 119.4, 128.8, 225);
 static final Waypoint SCORE = Waypoint.red("score", 99.5, 98.9, 240);
 ```
 
-When a blue position is genuinely not the mirror of red, pin it:
+When a blue position is not the mirror of red, pin it:
 
 ```java
 static final Waypoint DEPOT = Waypoint.red("depot", 12, 60, 180).blue(20, 84, 180);
@@ -54,8 +54,7 @@ web interface. See [Limelight](limelight.md).
 compare the camera pose against odometry. If x and y are swapped or a sign is flipped, fix
 `Field.toPedro`. Do this once and write down the result.
 
-**8. Set the tag IDs.** Tag numbers change every season. Put them somewhere named rather than in the
-middle of a method:
+**8. Set the tag IDs.** Tag numbers change every season. Give them names:
 
 ```java
 private static final int RED_GOAL_TAG = 24;

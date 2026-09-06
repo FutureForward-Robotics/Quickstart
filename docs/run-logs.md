@@ -1,13 +1,13 @@
 # Run Logs
 
 Every OpMode records a log while it runs. After a match or a practice run you copy the logs to your
-computer and look at the data. This is how you answer questions like "did the flywheel actually reach
-speed before we shot" without guessing.
+computer and look at the data. The log answers questions like whether the flywheel reached speed
+before a shot.
 
 ## Recording
 
 Logging is automatic. `ForwardOpMode` opens a log at init, writes one row per loop, and closes it when
-the OpMode stops. You do not have to call anything.
+the OpMode stops.
 
 To record a value, add one line to your subsystem's `logSignals` method:
 
@@ -89,8 +89,7 @@ python3 tools/plot_run.py --latest
 ```
 
 This prints a summary and writes `plot.html` inside the run directory, then opens it. The page has the
-data and the charting library embedded, so it works with no internet connection. You can open it at a
-competition, or email it to someone.
+data and the charting library embedded, so it works with no internet connection.
 
 | Option | Effect |
 | --- | --- |
@@ -113,7 +112,7 @@ loop numbers contiguous
 dropped 0  bytes 812345
 ```
 
-What to look for:
+Interpreting the summary:
 
 - **`max` loop period** much larger than the median means something blocked the loop. Compare the time
   it happened against the event list.
