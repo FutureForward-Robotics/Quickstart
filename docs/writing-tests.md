@@ -18,7 +18,7 @@ Run one class while you work on it:
 
 Tests live in `TeamCode/src/test/java/...`, in the same package as the class they test.
 
-## A first test
+## Example test
 
 Annotate the class with `@RobotTest` and take a `LoopRunner` parameter. The annotation clears the
 command scheduler and subsystem registry before and after each test, so tests cannot affect each
@@ -41,7 +41,7 @@ class LiftTest {
 }
 ```
 
-Three things are happening:
+This test does three things:
 
 1. `runner.motor("lift")` creates a fake motor and registers it under that name.
 2. `runner.hardwareMap()` returns a stand-in `HardwareMap` that hands out the fakes. Your subsystem
@@ -62,7 +62,7 @@ Three things are happening:
 The loop step defaults to 20 ms, matching a 50 Hz robot. Pass a different value to the constructor if
 a test needs it.
 
-## Available fakes
+## Fakes
 
 | Fake | Created with | Models |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ assertTrue(beam.calculate(true));
 Use `System::nanoTime` in real robot code and a controlled value in tests. `LoopRunner` advances its
 own clock as the loop runs.
 
-## What makes a test worth writing
+## Assertions
 
 A test should fail if the behavior it names is broken. This is easy to get wrong. If a test asserts a
 value that some other code path also produces, it passes even when the mechanism is broken.
@@ -114,7 +114,7 @@ assertEquals(-1.0, motor.getPower(), 1e-9);   // this is the assertion that can 
 When you write a test for a bug, break the fix on purpose and confirm the test fails. If it still
 passes, the test is not testing the fix.
 
-## What the fakes do not model
+## Limitations
 
 The fakes are simple on purpose. They do not model motor inertia, battery sag under load, encoder
 noise, or CAN and I2C timing. `FakeMotor` ignores `RunMode`, so a test cannot catch a missing

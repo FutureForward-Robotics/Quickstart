@@ -50,7 +50,7 @@ log.event("note", "driver took over");
 Command starts, interrupts, and finishes are recorded automatically, so you can see which command was
 running when something went wrong.
 
-## Files produced
+## File format
 
 Each run creates a directory on the Robot Controller under `/sdcard/FIRST/logs/`, named with the date,
 time, and OpMode:
@@ -64,7 +64,7 @@ time, and OpMode:
 
 The robot keeps the newest 25 runs and deletes older ones. A run stops recording if it reaches 32 MB.
 
-## Copying logs to your computer
+## Retrieving logs
 
 Connect to the Robot Controller by USB, or join the robot's wifi, then:
 
@@ -82,7 +82,7 @@ Runs land in `logs/` and runs you already have are skipped. Useful options:
 | `--delete-remote` | Delete each run from the robot after a verified copy |
 | `--hub HOST:PORT` | Address to connect to, default `192.168.43.1:5555` |
 
-## Plotting a run
+## Plotting
 
 ```
 python3 tools/plot_run.py --latest
@@ -101,7 +101,7 @@ competition, or email it to someone.
 | `--max-points N` | Thin the data to about N rows, default 20000 |
 | `--no-open` | Write the file without opening a browser |
 
-## Reading the summary
+## Summary output
 
 ```
 run 20260901-115434-TeleOp_Red

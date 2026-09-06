@@ -1,7 +1,6 @@
 # Robot Code Structure
 
-Every OpMode in this repository is built the same way. Once you understand one, you understand all of
-them.
+Every OpMode in this repository follows the same structure.
 
 ## OpModes
 
@@ -19,8 +18,8 @@ public class TeleOpRed extends MatchTeleOp {
 ```
 
 `initialize()` is final. It resets the command scheduler, clears the subsystem registry, sets up bulk
-caching and the gamepads, opens the run log, and then calls your `configure()`. Doing this in a fixed
-order prevents a class of startup bugs, so it is not something you override.
+caching and the gamepads, opens the run log, and then calls your `configure()`. The order matters,
+which is why you cannot override it.
 
 Methods you can use inside an OpMode:
 
@@ -81,7 +80,7 @@ a target.
 
 Subsystems register themselves when you construct them, so there is no list to keep up to date.
 
-### Why sense and act are separate
+### Sense and act phases
 
 Every subsystem senses before any subsystem acts. This means all of them see the same snapshot of the
 robot for a given loop. If a mechanism reacted to a sensor that another mechanism had already changed
@@ -93,7 +92,7 @@ constructed in. Splitting the phases removes that ordering problem.
 > read inside one loop returns the same value. Do not write a loop that waits for a sensor to change
 > inside a single `sense()` call, because it never will.
 
-### Construction order still matters in one case
+### Construction order
 
 Construction order sets the order of `sense()` and `act()` calls. This only matters when one
 subsystem reads a value another subsystem produced during its own `sense()`. The camera is the

@@ -4,16 +4,16 @@ The Limelight 3A is a camera that runs its own vision processing and reports res
 Controller. This repository wraps it in two classes: `Vision`, which reads the camera once per loop,
 and `PoseFusion`, which uses the camera's position estimate to correct odometry.
 
-There are two separate jobs, and they need very different amounts of setup.
+The camera supports two uses with different setup requirements.
 
 **Aiming at a target** needs almost no setup. The camera reports the angle to what it sees, and you
-turn until that angle is zero. Start here.
+turn until that angle is zero.
 
 **Getting the robot's position on the field** needs the field map, the camera's mounting position, and
 a heading that agrees with the field coordinate system. If any of them is wrong, the camera reports a
 position that looks reasonable and is not correct. Do this second, and check it before you rely on it.
 
-## Hardware and web interface setup
+## Setup
 
 1. Plug the Limelight into a USB port on the Control Hub. It appears as an ethernet device.
 2. On the Robot Controller configuration screen, find the Limelight in the device list and name it
@@ -30,7 +30,7 @@ position that looks reasonable and is not correct. Do this second, and check it 
 > Skipping step 5 does not produce an error. The camera reports its own position instead of the
 > robot's, so every estimate is off by however far the camera is mounted from the robot's center.
 
-## Adding it to an OpMode
+## OpMode setup
 
 ```java
 @Override
@@ -80,7 +80,7 @@ would send a mechanism to the wrong place.
 `getLatestResult()` yourself. If you read the camera twice in a loop you can get an angle from one
 frame and a position from another.
 
-## Position on the field
+## Field position
 
 ```java
 Pose seen = vision.fieldPose();
@@ -131,7 +131,7 @@ using it, so the heading it reports back is the one it was given.
 | `rejections()` | Frames thrown out for disagreeing too much |
 | `lastErrorIn()` | How far the last frame was from odometry, measured at capture time |
 
-## Checking that it works
+## Verification
 
 Run the **Vision Check** OpMode, in the `test` group. Drive to a spot you can measure, stop, and read
 the telemetry.
@@ -159,7 +159,7 @@ error at capture  0.5 in
 Press Y to set odometry to the camera's estimate in one step. It refuses above 4 inches per second,
 because a moving robot bakes the frame's age into the pose.
 
-## Constants you may need to change
+## Constants
 
 | Constant | Default | When to change it |
 | --- | --- | --- |

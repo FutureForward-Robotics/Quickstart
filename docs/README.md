@@ -10,7 +10,7 @@ Guides for the code in this repository. If you are new to the codebase, read the
 | [Limelight](limelight.md) | Setting up the camera, aiming with it, and correcting odometry |
 | [New Season Checklist](new-season-checklist.md) | What to change when the game changes |
 
-## Common commands
+## Commands
 
 Run the off-robot tests:
 
@@ -37,7 +37,7 @@ python3 tools/pull_logs.py
 python3 tools/plot_run.py --latest
 ```
 
-## Where code goes
+## Repository layout
 
 | Directory | Contents |
 | --- | --- |
