@@ -144,10 +144,25 @@ class FakesTest {
     }
 
     @Test
-    void reverseDirectionFlipsTravel(LoopRunner runner) {
+    void reverseDirectionLeavesTheLogicalFrameUnchanged(LoopRunner runner) {
         FakeMotor motor = runner.motor("lift", 2000);
 
+        // The SDK applies direction to the power and to the encoder read, so the two cancel and a
+        // closed loop keeps its sign. adjustPosition and adjustAngularRate do the second half.
         motor.setDirection(DcMotorSimple.Direction.REVERSE);
+        motor.setPower(0.5);
+        motor.step(1.0);
+
+        assertEquals(1000, motor.getCurrentPosition(), 1);
+        assertEquals(1000, motor.getVelocity(), 1);
+    }
+
+    @Test
+    void anInvertedEncoderCountsAgainstTheCommandedPower(LoopRunner runner) {
+        FakeMotor motor = runner.motor("lift", 2000);
+
+        // Gearing or wiring, which setDirection cannot express.
+        motor.setEncoderInverted(true);
         motor.setPower(0.5);
         motor.step(1.0);
 

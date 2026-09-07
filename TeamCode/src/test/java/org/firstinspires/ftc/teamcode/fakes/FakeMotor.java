@@ -31,6 +31,7 @@ public class FakeMotor implements DcMotorEx {
     private int targetPosition;
     private int targetPositionTolerance = 5;
     private boolean enabled = true;
+    private boolean encoderInverted;
     private double currentAmps;
     private double currentAlertAmps;
 
@@ -51,13 +52,26 @@ public class FakeMotor implements DcMotorEx {
             return;
         }
         double sign = direction == Direction.REVERSE ? -1 : 1;
-        velocityTicksPerSecond = effective * sign * ticksPerSecondAtFullPower;
+        velocityTicksPerSecond = effective * sign * (encoderInverted ? -1 : 1)
+                * ticksPerSecondAtFullPower;
         ticks += velocityTicksPerSecond * dtSeconds;
     }
 
-    /** Force the encoder, e.g. to model a mechanism starting away from zero. */
+    /**
+     * Models an encoder that counts against the commanded power, from gearing or wiring rather
+     * than from {@link #setDirection}. {@code setDirection} cannot express this: the SDK applies it
+     * to the power and to the encoder read together, so the two cancel.
+     */
+    public void setEncoderInverted(boolean inverted) {
+        encoderInverted = inverted;
+    }
+
+    /**
+     * Force the encoder, in the same frame {@link #getCurrentPosition()} reports, so a test reads
+     * back what it set.
+     */
     public void setEncoder(double newTicks) {
-        ticks = newTicks;
+        ticks = adjust(newTicks);
     }
 
     public void setCurrent(double amps) {
@@ -78,17 +92,22 @@ public class FakeMotor implements DcMotorEx {
 
     @Override
     public int getCurrentPosition() {
-        return (int) Math.round(ticks);
+        return (int) Math.round(adjust(ticks));
+    }
+
+    /** The SDK's adjustPosition and adjustAngularRate: direction is applied on the way out too. */
+    private double adjust(double raw) {
+        return direction == Direction.REVERSE ? -raw : raw;
     }
 
     @Override
     public double getVelocity() {
-        return velocityTicksPerSecond;
+        return adjust(velocityTicksPerSecond);
     }
 
     @Override
     public double getVelocity(AngleUnit unit) {
-        return velocityTicksPerSecond;
+        return adjust(velocityTicksPerSecond);
     }
 
     @Override
