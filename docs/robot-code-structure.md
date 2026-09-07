@@ -144,6 +144,11 @@ driver.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
         .whenHeld(robot.drive.assist(Assists.speedCap(0.35)));
 ```
 
+Assists layer, so more than one can be active. `Assists.steadyShot` is the one with state: it holds
+a heading and replaces the stick's magnitude with a fixed speed, which is what makes a shot on the
+move predictable. `Drive.steadyShot` latches the heading when the command is scheduled, so bind it
+with `whenHeld`, never `whileHeld`.
+
 ## Pure computation
 
 Some code reads no hardware and writes no outputs. An aiming solver that turns a robot position into

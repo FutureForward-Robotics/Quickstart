@@ -15,6 +15,31 @@ public final class Assists {
 
     private static final double DRIVER_TURN_DEADBAND = 0.05;
 
+    private static final double DRIVER_STICK_DEADBAND = 0.1;
+
+    /**
+     * Holds a heading and replaces the driver's translation magnitude with a fixed one, keeping the
+     * direction they are asking for. For shooting on the move: a constant speed on a fixed heading
+     * is a motion the aim solution's velocity lead can actually account for.
+     *
+     * <p>Unlike {@link #headingLock}, driver turn input is ignored rather than obeyed. Turning is
+     * what the assist exists to prevent, and the turret's tracking error grows with yaw rate.
+     *
+     * <p>{@code speed} is a fraction of full drive power, not inches per second.
+     */
+    public static DriveAssist steadyShot(DoubleSupplier heldHeadingRad, double kP, double speed) {
+        return (driver, pose) -> {
+            double error = Field.normalize(heldHeadingRad.getAsDouble() - pose.getHeading());
+            double turn = clamp(kP * error, -1, 1);
+            double magnitude = Math.hypot(driver.forward, driver.strafe);
+            if (magnitude < DRIVER_STICK_DEADBAND) {
+                return new DriveInput(0, 0, turn);
+            }
+            double scale = speed / magnitude;
+            return new DriveInput(driver.forward * scale, driver.strafe * scale, turn);
+        };
+    }
+
     /** Holds a heading unless the driver is turning. */
     public static DriveAssist headingLock(DoubleSupplier targetHeadingRad, double kP) {
         return (driver, pose) -> {

@@ -220,4 +220,25 @@ public class Drive extends ForwardSubsystem implements MotionSource {
                 },
                 () -> assists.remove(assist));
     }
+
+    /**
+     * Arms a shot on the move: holds the heading the robot had when this was scheduled and drives
+     * at a constant speed in whatever direction the sticks ask for.
+     *
+     * <p>Requires no subsystems, so it layers over the teleop default command. Bind it with {@code
+     * whenHeld}: {@code whileHeld} reschedules every loop, which would re-latch the heading
+     * continuously and hold nothing.
+     */
+    public Command steadyShot(double speed, double headingKp) {
+        double[] heldHeading = new double[1];
+        DriveAssist assist = Assists.steadyShot(() -> heldHeading[0], headingKp, speed);
+        return new StartEndCommand(
+                () -> {
+                    heldHeading[0] = pose().getHeading();
+                    if (!assists.contains(assist)) {
+                        assists.add(assist);
+                    }
+                },
+                () -> assists.remove(assist));
+    }
 }

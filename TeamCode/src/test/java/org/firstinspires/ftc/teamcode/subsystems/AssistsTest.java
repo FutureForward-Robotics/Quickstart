@@ -121,4 +121,47 @@ class AssistsTest {
         assertEquals(2, original.strafe, EPS);
         assertEquals(3, original.turn, EPS);
     }
+
+    @Test
+    void steadyShotHoldsOneSpeedHoweverHardTheStickIsPushed() {
+        DriveAssist armed = Assists.steadyShot(() -> 0, 2.0, 0.35);
+        Pose square = new Pose(0, 0, 0);
+
+        DriveInput gentle = armed.apply(new DriveInput(0.2, 0, 0), square);
+        DriveInput full = armed.apply(new DriveInput(1.0, 0, 0), square);
+
+        assertEquals(0.35, Math.hypot(gentle.forward, gentle.strafe), EPS);
+        assertEquals(0.35, Math.hypot(full.forward, full.strafe), EPS);
+    }
+
+    @Test
+    void steadyShotKeepsTheDirectionTheStickAsksFor() {
+        DriveAssist armed = Assists.steadyShot(() -> 0, 2.0, 0.5);
+
+        DriveInput out = armed.apply(new DriveInput(0.3, 0.3, 0), new Pose(0, 0, 0));
+
+        assertEquals(0.5, Math.hypot(out.forward, out.strafe), EPS);
+        assertEquals(out.forward, out.strafe, EPS, "45deg in stays 45deg out");
+    }
+
+    @Test
+    void steadyShotStandsStillWhenTheStickIsCentred() {
+        DriveAssist armed = Assists.steadyShot(() -> 0, 2.0, 0.35);
+
+        DriveInput out = armed.apply(new DriveInput(0.02, -0.01, 0), new Pose(0, 0, 0));
+
+        assertEquals(0, out.forward, EPS);
+        assertEquals(0, out.strafe, EPS);
+    }
+
+    @Test
+    void steadyShotHoldsTheHeadingEvenAgainstTheDriver() {
+        DriveAssist armed = Assists.steadyShot(() -> 0, 2.0, 0.35);
+        Pose off = new Pose(0, 0, Math.toRadians(-20));
+
+        DriveInput out = armed.apply(new DriveInput(0.6, 0, -0.9), off);
+
+        assertTrue(out.turn > 0, "corrects CCW toward the held heading, ignoring the stick");
+        assertTrue(Math.abs(out.turn) <= 1.0, "turn output is clamped");
+    }
 }
