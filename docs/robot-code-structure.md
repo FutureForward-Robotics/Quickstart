@@ -78,6 +78,20 @@ public class Lift extends ForwardSubsystem {
 `act()` writes to motors and servos, using the values `sense()` stored and whatever a command set as
 a target.
 
+Write only when the value changed by enough to matter. One write to the hub costs about 2.5 ms,
+measured by timing each subsystem's act phase on a Control Hub, so an output recomputed every loop by
+a control loop spends the loop budget sending changes the hardware cannot resolve:
+
+```java
+if (BusWrites.worthMotor(power, lastWritten)) {
+    motor.setPower(power);
+    lastWritten = power;
+}
+```
+
+`BusWrites.worthServo` does the same for a servo position. Comparing with `!=` is not enough: a
+control loop output is almost never bit identical to the last one.
+
 Subsystems register themselves when you construct them, so there is no list to keep up to date.
 
 ### Sense and act phases

@@ -26,6 +26,9 @@ public abstract class ForwardSubsystem extends SubsystemBase {
 
     private static final List<ForwardSubsystem> REGISTERED = new ArrayList<>();
 
+    private long senseNanos;
+    private long actNanos;
+
     protected ForwardSubsystem() {
         if (!REGISTERED.contains(this)) {
             REGISTERED.add(this);
@@ -48,20 +51,49 @@ public abstract class ForwardSubsystem extends SubsystemBase {
 
     public static void senseAll() {
         for (int i = 0; i < REGISTERED.size(); i++) {
+            long start = System.nanoTime();
             REGISTERED.get(i).sense();
+            REGISTERED.get(i).senseNanos = System.nanoTime() - start;
         }
     }
 
     public static void actAll() {
         for (int i = 0; i < REGISTERED.size(); i++) {
+            long start = System.nanoTime();
             REGISTERED.get(i).act();
+            REGISTERED.get(i).actNanos = System.nanoTime() - start;
         }
     }
 
     public static void registerSignals(RunLog log) {
         for (int i = 0; i < REGISTERED.size(); i++) {
-            REGISTERED.get(i).logSignals(log);
+            ForwardSubsystem subsystem = REGISTERED.get(i);
+            String name = subsystem.signalPrefix();
+            log.addSignal(name + ".senseMs", () -> subsystem.senseNanos / 1e6);
+            log.addSignal(name + ".actMs", () -> subsystem.actNanos / 1e6);
+            subsystem.logSignals(log);
         }
+    }
+
+    /**
+     * Prefix for this subsystem's log columns, so timing lands in the same chart group as the
+     * subsystem's own signals. Two instances of one class would collide, so the index is appended
+     * from the second onwards.
+     */
+    private String signalPrefix() {
+        String base = getClass().getSimpleName();
+        base = Character.toLowerCase(base.charAt(0)) + base.substring(1);
+        int ordinal = 0;
+        for (int i = 0; i < REGISTERED.size(); i++) {
+            ForwardSubsystem other = REGISTERED.get(i);
+            if (other == this) {
+                break;
+            }
+            if (other.getClass() == getClass()) {
+                ordinal++;
+            }
+        }
+        return ordinal == 0 ? base : base + ordinal;
     }
 
     public static int registeredCount() {

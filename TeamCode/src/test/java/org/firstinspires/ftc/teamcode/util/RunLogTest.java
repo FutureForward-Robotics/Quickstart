@@ -228,4 +228,22 @@ class RunLogTest {
         assertTrue(log.directory().isDirectory(), "the new run directory was not pruned");
         assertEquals(2, lines(log, "signals.csv").size(), "and it is still readable");
     }
+
+    @Test
+    void closingOnAnInterruptedThreadStillWritesTheTail() throws IOException {
+        // LinearOpMode interrupts the OpMode thread on stop, and close() runs on that thread.
+        RunLog log = RunLog.open(logDir, "Auto");
+        log.addSignal("a", () -> 1);
+        for (int i = 0; i < 50; i++) {
+            log.writeLoop(i);
+        }
+
+        Thread.currentThread().interrupt();
+        log.close();
+
+        assertTrue(Thread.interrupted(), "the interrupt is restored, and cleared here for later tests");
+        assertEquals(51, lines(log, "signals.csv").size(), "header plus every row survived");
+        List<String> events = lines(log, "events.jsonl");
+        assertTrue(events.get(events.size() - 1).contains("\"event\":\"end\""), events.toString());
+    }
 }

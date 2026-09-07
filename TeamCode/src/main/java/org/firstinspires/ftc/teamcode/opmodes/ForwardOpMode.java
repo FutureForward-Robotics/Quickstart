@@ -40,6 +40,11 @@ public abstract class ForwardOpMode extends CommandOpMode {
 
     private RunLog log;
 
+    private long inputsNanos;
+    private long senseNanos;
+    private long schedulerNanos;
+    private long actNanos;
+
     @Override
     public final void initialize() {
         CommandScheduler.getInstance().reset();
@@ -58,6 +63,7 @@ public abstract class ForwardOpMode extends CommandOpMode {
 
         log = RunLog.openDefault(opModeName());
         try {
+            registerLoopSignals(log);
             ForwardSubsystem.registerSignals(log);
             logSignals(log);
             CommandLogHooks.install(log);
@@ -88,11 +94,34 @@ public abstract class ForwardOpMode extends CommandOpMode {
 
     @Override
     public void run() {
+        long start = System.nanoTime();
         refreshInputs();
+        long afterInputs = System.nanoTime();
         ForwardSubsystem.senseAll();
+        long afterSense = System.nanoTime();
         super.run();
+        long afterScheduler = System.nanoTime();
         ForwardSubsystem.actAll();
+        long afterAct = System.nanoTime();
+
+        inputsNanos = afterInputs - start;
+        senseNanos = afterSense - afterInputs;
+        schedulerNanos = afterScheduler - afterSense;
+        actNanos = afterAct - afterScheduler;
+
         log.writeLoop((int) loopTimer.count());
+    }
+
+    /**
+     * Where the loop spent its time, in milliseconds. Registered first, so the columns lead the
+     * CSV. Four {@code nanoTime} calls per loop cost about 100 ns between them.
+     */
+    private void registerLoopSignals(RunLog log) {
+        log.addSignal("loop.hz", loopTimer::hz);
+        log.addSignal("loop.inputsMs", () -> inputsNanos / 1e6);
+        log.addSignal("loop.senseMs", () -> senseNanos / 1e6);
+        log.addSignal("loop.schedulerMs", () -> schedulerNanos / 1e6);
+        log.addSignal("loop.actMs", () -> actNanos / 1e6);
     }
 
     private void refreshInputs() {

@@ -49,7 +49,10 @@ public final class RunLog implements AutoCloseable {
     private static final int QUEUE_CAPACITY = 2048;
     private static final long POLL_MS = 100;
     private static final long FLUSH_INTERVAL_MS = 2000;
-    private static final long STOP_TIMEOUT_MS = 500;
+    /** Graceful drain, then a shorter window after interrupting. The stop budget is about 900 ms. */
+    private static final long STOP_TIMEOUT_MS = 600;
+
+    private static final long FORCE_TIMEOUT_MS = 200;
     private static final int SIGNAL_DECIMALS = 4;
     private static final int TIME_DECIMALS = 3;
     private static final Charset UTF_8 = Charset.forName("UTF-8");
@@ -100,6 +103,7 @@ public final class RunLog implements AutoCloseable {
     private volatile boolean stopping;
     private volatile boolean capped;
     private boolean warned;
+    private boolean closeInterrupted;
 
     /** Log folder on internal storage. Must be under {@link AppUtil#FIRST_FOLDER} to be writable. */
     public static RunLog openDefault(String opModeName) {
@@ -324,29 +328,37 @@ public final class RunLog implements AutoCloseable {
         if (!frozen) {
             enqueue(META, buildMeta());
         }
-        stopping = true;
-        writer.shutdown();
-        boolean drained = awaitWriter();
-        if (!drained) {
-            writer.shutdownNow();
-            drained = awaitWriter();
+        // The OpMode thread is interrupted on stop, and awaitTermination throws immediately when
+        // the flag is already set, so the waits below would not wait at all. Clear it for the
+        // duration and restore it on the way out.
+        boolean wasInterrupted = Thread.interrupted();
+        try {
+            stopping = true;
+            writer.shutdown();
+            if (!awaitWriter(STOP_TIMEOUT_MS)) {
+                writer.shutdownNow();
+                if (!awaitWriter(FORCE_TIMEOUT_MS)) {
+                    // The writer may still be inside a write, so closing the streams under it
+                    // would corrupt the tail rather than save it.
+                    RobotLog.addGlobalWarningMessage("RunLog writer did not stop; log tail lost");
+                    return;
+                }
+            }
+            syncAndClose(signals, signalsFile);
+            syncAndClose(events, eventsFile);
+        } finally {
+            if (wasInterrupted || closeInterrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
-        if (!drained) {
-            // The writer may still be inside a write, so closing the streams under it would
-            // corrupt the tail rather than save it.
-            RobotLog.addGlobalWarningMessage("RunLog writer did not stop; log tail lost");
-            return;
-        }
-        syncAndClose(signals, signalsFile);
-        syncAndClose(events, eventsFile);
     }
 
-    /** Waits {@link #STOP_TIMEOUT_MS} for the writer to finish, preserving the interrupt. */
-    private boolean awaitWriter() {
+    /** Waits for the writer. Records a fresh interrupt rather than re-arming it mid-close. */
+    private boolean awaitWriter(long timeoutMs) {
         try {
-            return writer.awaitTermination(STOP_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            return writer.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            closeInterrupted = true;
             return false;
         }
     }
@@ -370,14 +382,14 @@ public final class RunLog implements AutoCloseable {
         boolean interrupted = false;
         while (true) {
             Entry entry;
-            if (interrupted) {
+            if (stopping || interrupted) {
+                // Nothing more is enqueued once stopping is set, so drain without waiting.
                 entry = queue.poll();
             } else {
                 try {
                     entry = queue.poll(POLL_MS, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     interrupted = true;
-                    Thread.currentThread().interrupt();
                     continue;
                 }
             }
@@ -391,6 +403,9 @@ public final class RunLog implements AutoCloseable {
                 lastFlushNanos = nowNanos;
             }
             if (stopping || interrupted) {
+                // Push the buffers out even if close() has already given up waiting, so an
+                // unclean stop still leaves everything written so far on disk.
+                flushQuietly();
                 return;
             }
         }

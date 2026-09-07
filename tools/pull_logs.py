@@ -16,22 +16,16 @@ from __future__ import annotations
 
 import argparse
 import os
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 
+import adb
 import runlog
+from adb import AdbError
 
-DEFAULT_HUB = "192.168.43.1:5555"
-SHELL_TIMEOUT_S = 20
+DEFAULT_HUB = adb.DEFAULT_HUB
+SHELL_TIMEOUT_S = adb.SHELL_TIMEOUT_S
 PULL_TIMEOUT_S = 180
-
-
-class AdbError(Exception):
-    def __init__(self, message: str, code: int):
-        super().__init__(message)
-        self.code = code
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -50,9 +44,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        adb = find_adb(args.adb)
-        serial = ensure_device(adb, args.hub)
-        remote_runs = list_remote_runs(adb, serial)
+        adb_path = adb.find_adb(args.adb)
+        serial = adb.ensure_device(adb_path, args.hub)
+        remote_runs = list_remote_runs(adb_path, serial)
     except AdbError as exc:
         print(str(exc), file=sys.stderr)
         return exc.code
@@ -75,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{name} skipped (already local)")
             continue
         try:
-            pull_run(adb, name, dest, serial)
+            pull_run(adb_path, name, dest, serial)
         except AdbError as exc:
             print(str(exc), file=sys.stderr)
             return exc.code
@@ -86,8 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         note = "" if (local / "meta.json").exists() else " (no meta.json)"
         print(f"{name} pulled{note}")
         if args.delete_remote:
-            run_adb(
-                adb,
+            adb.run_adb(
+                adb_path,
                 ["shell", "rm", "-rf", f"{runlog.REMOTE_LOGS}/{name}"],
                 SHELL_TIMEOUT_S,
                 serial,
@@ -102,82 +96,9 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def find_adb(explicit: str | None) -> str:
-    # An explicit override that does not resolve is an error: silently using a different adb than
-    # the one asked for hides the real problem.
-    for label, candidate in (("--adb", explicit), ("$ADB", os.environ.get("ADB"))):
-        if not candidate:
-            continue
-        resolved = resolve_executable(candidate)
-        if resolved:
-            return resolved
-        raise AdbError(f"adb not found: {label}={candidate} is not an executable", 3)
-    on_path = shutil.which("adb")
-    if on_path:
-        return on_path
-    android_home = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
-    if android_home:
-        bundled = Path(android_home) / "platform-tools" / "adb"
-        if bundled.is_file():
-            return str(bundled)
-    raise AdbError("adb not found; install Android platform-tools or pass --adb", 3)
-
-
-def resolve_executable(candidate: str) -> str | None:
-    path = Path(candidate)
-    if path.is_file():
-        return str(path)
-    return shutil.which(candidate)
-
-
-def run_adb(adb: str, args: list[str], timeout: int, serial: str | None = None) -> tuple[int, str]:
-    """adb output is \\r\\n terminated; strip the \\r or every parse breaks on Windows."""
-    argv = [adb, *(["-s", serial] if serial else []), *args]
-    try:
-        done = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
-    except subprocess.TimeoutExpired:
-        raise AdbError(f"adb {' '.join(args)} timed out after {timeout}s", 4)
-    return done.returncode, (done.stdout + done.stderr).replace("\r", "")
-
-
-def attached_devices(adb: str) -> list[str]:
-    _, out = run_adb(adb, ["devices"], SHELL_TIMEOUT_S)
-    devices = []
-    for line in out.splitlines()[1:]:
-        parts = line.split("\t")
-        if len(parts) == 2 and parts[1].strip() == "device":
-            devices.append(parts[0].strip())
-    return devices
-
-
-def ensure_device(adb: str, hub: str) -> str | None:
-    """Returns the serial to address, or None when a single device makes ``-s`` unnecessary."""
-    devices = attached_devices(adb)
-    if not devices:
-        run_adb(adb, ["connect", hub], SHELL_TIMEOUT_S)
-        devices = attached_devices(adb)
-    if len(devices) == 1:
-        return None
-    if len(devices) > 1:
-        # Every unqualified call would fail with "more than one device/emulator". A Driver Station
-        # phone next to the hub is the usual cause.
-        if hub in devices:
-            return hub
-        raise AdbError(
-            "more than one device attached: "
-            + ", ".join(devices)
-            + "; unplug the others or pass --hub with the one you want",
-            4,
-        )
-    raise AdbError(
-        f"no device; plug in USB or join the hub's wifi (tried {hub})",
-        4,
-    )
-
-
-def list_remote_runs(adb: str, serial: str | None) -> list[str]:
-    code, out = run_adb(
-        adb, ["shell", "ls", "-1", runlog.REMOTE_LOGS], SHELL_TIMEOUT_S, serial
+def list_remote_runs(adb_path: str, serial: str | None) -> list[str]:
+    code, out = adb.run_adb(
+        adb_path, ["shell", "ls", "-1", runlog.REMOTE_LOGS], SHELL_TIMEOUT_S, serial
     )
     if "No such file" in out:
         raise AdbError(
@@ -190,14 +111,15 @@ def list_remote_runs(adb: str, serial: str | None) -> list[str]:
     return sorted(set(names))
 
 
-def pull_run(adb: str, name: str, dest: Path, serial: str | None) -> None:
-    code, out = run_adb(
-        adb, ["pull", f"{runlog.REMOTE_LOGS}/{name}", str(dest)], PULL_TIMEOUT_S, serial
+def pull_run(adb_path: str, name: str, dest: Path, serial: str | None) -> None:
+    code, out = adb.run_adb(
+        adb_path, ["pull", f"{runlog.REMOTE_LOGS}/{name}", str(dest)], PULL_TIMEOUT_S, serial
     )
     if code != 0:
         # Must raise: main's completeness check reads the destination, which under --force can
         # still hold an older complete copy, and --delete-remote would then drop the fresh one.
         raise AdbError(f"adb pull {name} failed: {out.strip()}", 4)
+
 
 
 def is_complete(run_dir: Path) -> bool:

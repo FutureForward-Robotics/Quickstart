@@ -30,6 +30,12 @@ Run one test class while you work on it:
 ./gradlew :TeamCode:testDebugUnitTest --tests '*DriveTest*'
 ```
 
+Upload code to the robot over wifi, which is what the REV Hardware Client does on Windows:
+
+```
+python3 tools/deploy.py
+```
+
 Pull run logs off the robot and plot the newest one:
 
 ```

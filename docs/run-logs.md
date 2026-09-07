@@ -9,6 +9,11 @@ before a shot.
 Logging is automatic. `ForwardOpMode` opens a log at init, writes one row per loop, and closes it when
 the OpMode stops.
 
+Some columns appear without you asking. `loop.hz`, `loop.inputsMs`, `loop.senseMs`,
+`loop.schedulerMs` and `loop.actMs` record where each loop spent its time, and every registered
+subsystem gets `<name>.senseMs` and `<name>.actMs`. Together they name the mechanism that is costing
+loop rate.
+
 To record a value, add one line to your subsystem's `logSignals` method:
 
 ```java
