@@ -163,8 +163,9 @@ public class Drive extends ForwardSubsystem implements MotionSource {
      * Follows a path, stopping the follower if the command is interrupted.
      *
      * <p>To cap one leg's speed, modify the path rather than this command: {@code
-     * path.with(Constants.algorithmConfig.maxPathSpeed.at(20.0))} limits it to 20 inches/second and
-     * restores the previous limit when the path ends.
+     * path.with(Constants.algorithmConfig.maxPathSpeed.at(0.5))} holds it to half the robot's top
+     * speed and restores the previous limit when the path ends. {@code maxPathSpeed} is a fraction;
+     * for an absolute limit use {@code maxVelocityConstraint}, in inches/second.
      */
     public Command follow(Path path, long timeoutMs) {
         return new FunctionalCommand(

@@ -75,8 +75,8 @@ public class Constants {
 
                         c.maxAchievableForwardVelocity.set(60.0);
                         c.maxAchievableStrafeVelocity.set(50.0);
-                        c.naturalForwardDeceleration.set(-30.0);
-                        c.naturalStrafeDeceleration.set(-40.0);
+                        c.naturalForwardDeceleration.set(30.0);
+                        c.naturalStrafeDeceleration.set(40.0);
                     });
 
     /** Hardware factories, separate so the AutoTune procedures can build them on their own. */

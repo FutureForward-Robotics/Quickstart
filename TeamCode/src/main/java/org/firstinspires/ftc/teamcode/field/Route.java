@@ -16,7 +16,8 @@ import java.util.List;
  *
  * <p>A leg is a plain {@link Path} and carries no follower, so a route can be built and inspected
  * off-robot. Per-leg limits are {@code Modifier}s rather than a constraints object: {@code
- * path.with(Constants.algorithmConfig.maxPathSpeed.at(20.0))} caps one leg and reverts afterwards.
+ * path.with(Constants.algorithmConfig.maxPathSpeed.at(0.5))} holds one leg to half the robot's top
+ * speed and reverts afterwards.
  *
  * <pre>{@code
  * Route route = drive.route(alliance, Waypoints.START);

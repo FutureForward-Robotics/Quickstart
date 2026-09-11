@@ -100,16 +100,16 @@ class RouteTest {
      */
     @Test
     void aPerLegLimitAppliesAndThenReverts() {
-        ForesightConfig config = new ForesightConfig(c -> c.maxPathSpeed.set(80.0));
+        ForesightConfig config = new ForesightConfig(c -> c.maxPathSpeed.set(1.0));
 
-        Modifier slowLeg = config.maxPathSpeed.at(20.0);
-        assertEquals(80.0, config.maxPathSpeed.get(), EPS);
+        Modifier slowLeg = config.maxPathSpeed.at(0.5);
+        assertEquals(1.0, config.maxPathSpeed.get(), EPS);
 
         slowLeg.apply();
-        assertEquals(20.0, config.maxPathSpeed.get(), EPS);
+        assertEquals(0.5, config.maxPathSpeed.get(), EPS);
 
         slowLeg.revert();
-        assertEquals(80.0, config.maxPathSpeed.get(), EPS, "the next leg is unaffected");
+        assertEquals(1.0, config.maxPathSpeed.get(), EPS, "the next leg is unaffected");
     }
 
     @Test
