@@ -132,4 +132,21 @@ class WaypointTest {
         assertEquals(44.467, Field.SYMMETRY.x(99.533, 98.933), 1e-9);
         assertTrue(scorePreload.blueDriftInches() > 8.0);
     }
+
+    @Test
+    void headingAndPoseReportTheSameDirectionInDifferentRanges() {
+        Waypoint w = Waypoint.red("corner", 10, 10, -45);
+
+        assertEquals(Math.toRadians(-45), w.heading(Alliance.RED), EPS, "signed, for differences");
+        assertEquals(
+                Math.toRadians(315),
+                w.pose(Alliance.RED).heading(),
+                EPS,
+                "Pedro stores a Pose heading in [0, 2pi)");
+        assertEquals(
+                0,
+                Field.normalize(w.pose(Alliance.RED).heading() - w.heading(Alliance.RED)),
+                EPS,
+                "same direction either way");
+    }
 }

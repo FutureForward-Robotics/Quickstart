@@ -22,6 +22,15 @@ public final class Field {
     public static final FieldSymmetry SYMMETRY = FieldSymmetry.MIRROR_X;
 
     /** Wraps to [-pi, pi). */
+    /**
+     * Wraps an angle into [-pi, pi). This is the convention for a heading <em>difference</em>: the
+     * sign is the direction to turn and the magnitude is the shortest path.
+     *
+     * <p>Pedro stores an absolute heading in a {@code Pose} as [0, 2pi) instead, so {@code
+     * pose.heading()} is never negative. Normalizing a value before handing it to a {@code Pose}
+     * does nothing, because the constructor re-wraps it. Pedro's own {@code Angle} class keeps both
+     * ranges for the same reason, and its follower computes every error with the signed one.
+     */
     public static double normalize(double rad) {
         double a = (rad + Math.PI) % (2 * Math.PI);
         if (a < 0) {

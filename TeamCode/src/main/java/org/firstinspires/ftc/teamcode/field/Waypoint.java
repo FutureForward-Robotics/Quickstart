@@ -75,7 +75,10 @@ public final class Waypoint {
         return bluePinned ? blueY : Field.SYMMETRY.y(redX, redY);
     }
 
-    /** Radians, wrapped to [-pi, pi). */
+    /**
+     * Radians, wrapped to [-pi, pi). {@link #pose} re-wraps it to [0, 2pi), so this and {@code
+     * pose(alliance).heading()} report the same direction as different numbers below zero.
+     */
     public double heading(Alliance alliance) {
         if (alliance.isRed()) {
             return Field.normalize(redHeading);
