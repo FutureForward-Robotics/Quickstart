@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.util.MotionSource;
 import org.firstinspires.ftc.teamcode.util.RunLog;
@@ -43,7 +43,7 @@ public final class Vision extends ForwardSubsystem {
     public void sense() {
         // Orientation first: MegaTag2 fuses the yaw the camera was last given, and the reading
         // below was captured before this call, so it reflects the previous loop's heading.
-        camera.orient(Math.toDegrees(motion.pose().getHeading()));
+        camera.orient(Math.toDegrees(motion.pose().heading()));
         sample = camera.read();
     }
 
@@ -101,7 +101,7 @@ public final class Vision extends ForwardSubsystem {
         log.addSignal("vision.tx", this::tx);
         log.addSignal("vision.ty", this::ty);
         log.addSignal("vision.tags", () -> sample.tags().size());
-        log.addSignal("vision.poseX", () -> fieldPose() == null ? Double.NaN : fieldPose().getX());
-        log.addSignal("vision.poseY", () -> fieldPose() == null ? Double.NaN : fieldPose().getY());
+        log.addSignal("vision.poseX", () -> fieldPose() == null ? Double.NaN : fieldPose().x());
+        log.addSignal("vision.poseY", () -> fieldPose() == null ? Double.NaN : fieldPose().y());
     }
 }

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +27,8 @@ class PoseBufferTest {
 
         Pose middle = buffer.at(10 * MS);
 
-        assertEquals(5, middle.getX(), EPS);
-        assertEquals(10, middle.getY(), EPS);
+        assertEquals(5, middle.x(), EPS);
+        assertEquals(10, middle.y(), EPS);
     }
 
     @Test
@@ -37,8 +37,8 @@ class PoseBufferTest {
         buffer.add(10 * MS, new Pose(1, 1, 0));
         buffer.add(20 * MS, new Pose(2, 2, 0));
 
-        assertEquals(1, buffer.at(0).getX(), EPS, "before the oldest sample");
-        assertEquals(2, buffer.at(50 * MS).getX(), EPS, "after the newest");
+        assertEquals(1, buffer.at(0).x(), EPS, "before the oldest sample");
+        assertEquals(2, buffer.at(50 * MS).x(), EPS, "after the newest");
     }
 
     @Test
@@ -48,7 +48,7 @@ class PoseBufferTest {
         buffer.add(20 * MS, new Pose(0, 0, Math.toRadians(-170)));
 
         // 170 to -170 is 20 degrees forward through 180, not 340 degrees back.
-        assertEquals(Math.toRadians(180), Math.abs(buffer.at(10 * MS).getHeading()), 1e-9);
+        assertEquals(Math.toRadians(180), Math.abs(buffer.at(10 * MS).heading()), 1e-9);
     }
 
     @Test
@@ -59,9 +59,9 @@ class PoseBufferTest {
         }
 
         assertEquals(4, buffer.size());
-        assertEquals(6, buffer.at(6 * 20 * MS).getX(), EPS, "oldest retained sample");
-        assertEquals(9, buffer.at(9 * 20 * MS).getX(), EPS, "newest");
-        assertEquals(6, buffer.at(0).getX(), EPS, "a time older than the window clamps");
+        assertEquals(6, buffer.at(6 * 20 * MS).x(), EPS, "oldest retained sample");
+        assertEquals(9, buffer.at(9 * 20 * MS).x(), EPS, "newest");
+        assertEquals(6, buffer.at(0).x(), EPS, "a time older than the window clamps");
     }
 
     @Test

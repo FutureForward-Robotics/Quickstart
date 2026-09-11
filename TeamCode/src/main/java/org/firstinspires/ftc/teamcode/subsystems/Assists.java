@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Field;
@@ -29,7 +29,7 @@ public final class Assists {
      */
     public static DriveAssist steadyShot(DoubleSupplier heldHeadingRad, double kP, double speed) {
         return (driver, pose) -> {
-            double error = Field.normalize(heldHeadingRad.getAsDouble() - pose.getHeading());
+            double error = Field.normalize(heldHeadingRad.getAsDouble() - pose.heading());
             double turn = clamp(kP * error, -1, 1);
             double magnitude = Math.hypot(driver.forward, driver.strafe);
             if (magnitude < DRIVER_STICK_DEADBAND) {
@@ -46,7 +46,7 @@ public final class Assists {
             if (Math.abs(driver.turn) > DRIVER_TURN_DEADBAND) {
                 return driver;
             }
-            double error = Field.normalize(targetHeadingRad.getAsDouble() - pose.getHeading());
+            double error = Field.normalize(targetHeadingRad.getAsDouble() - pose.heading());
             return driver.withTurn(clamp(kP * error, -1, 1));
         };
     }
@@ -61,7 +61,7 @@ public final class Assists {
             Waypoint target, Alliance alliance, double radiusIn, double minScale) {
         final Pose goal = target.pose(alliance);
         return (driver, pose) -> {
-            double distance = goal.distanceFrom(pose);
+            double distance = goal.distance(pose);
             if (distance >= radiusIn) {
                 return driver;
             }
@@ -74,8 +74,8 @@ public final class Assists {
             Waypoint target, Alliance alliance, double kP, double radiusIn, double maxAuthority) {
         final Pose goal = target.pose(alliance);
         return (driver, pose) -> {
-            double dx = goal.getX() - pose.getX();
-            double dy = goal.getY() - pose.getY();
+            double dx = goal.x() - pose.x();
+            double dy = goal.y() - pose.y();
             if (Math.hypot(dx, dy) > radiusIn) {
                 return driver;
             }

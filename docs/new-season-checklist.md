@@ -36,9 +36,16 @@ the symmetry would have put it, which is a quick way to spot a typo.
 
 ## Drivetrain
 
-**4. Tune Pedro Pathing.** Use the tuning OpModes in `pedroPathing/`. Follow the Pedro documentation
-and record the values in `pedroPathing/Constants.java`. Do this after the drivetrain is mechanically
-finished, because the numbers depend on weight and wheel condition.
+**4. Tune Pedro Pathing.** The Robot Controller hosts the AutoTune page while the app is running,
+so there is no tuning OpMode to select. Join the robot's wifi and open port 10158 on the Robot
+Controller, which is `http://192.168.43.1:10158` on a Control Hub. The page runs the OpModes it
+needs. Tune in this order: the mecanum drivetrain, then the Pinpoint localizer, then Foresight,
+which drives the robot and needs the other two working. Each tuner prints a block of Java; paste it
+over the matching config in `pedroPathing/Constants.java`.
+
+Do this after the drivetrain is mechanically finished, because the numbers depend on weight and
+wheel condition. The Foresight values that ship with the template are placeholders. Twelve of them
+have no defaults, so the robot will follow paths badly until you replace them with your own.
 
 **5. Set the starting poses.** Each autonomous OpMode passes a starting waypoint to `Robot`. Measure
 where the robot actually sits against the field wall.

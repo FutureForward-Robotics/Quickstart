@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Waypoint;
@@ -107,7 +107,7 @@ class AssistsTest {
 
     @Test
     void speedCapScalesTranslationOnly() {
-        DriveInput out = Assists.speedCap(0.4).apply(new DriveInput(1.0, 1.0, 1.0), new Pose());
+        DriveInput out = Assists.speedCap(0.4).apply(new DriveInput(1.0, 1.0, 1.0), Pose.zero());
         assertEquals(0.4, out.forward, EPS);
         assertEquals(0.4, out.strafe, EPS);
         assertEquals(1.0, out.turn, EPS);

@@ -1,9 +1,7 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
-    maven { url = 'https://maven.pedropathing.com' }
-    maven { url = "https://mymaven.bylazar.com/releases" }
-    maven { url = "https://repo.dairy.foundation/releases" }
+    maven { url = "https://repo.dairy.foundation/releases" } // Sloth, via pedropathing tuning
 }
 
 dependencies {
@@ -17,9 +15,10 @@ dependencies {
     implementation 'org.firstinspires.ftc:Vision:11.2.1'
     implementation 'androidx.appcompat:appcompat:1.2.0'
 
-    implementation 'com.pedropathing:ftc:2.1.2'
-    implementation 'com.pedropathing:telemetry:1.0.0'
-    implementation 'com.bylazar:fullpanels:1.0.12'
+    // Pedro Pathing 3.x. 'revhub' is the hardware layer and pulls in 'core';
+    // 'tuning' is AutoTune, the robot-hosted tuning web page.
+    implementation 'com.pedropathing:revhub:3.0.0'
+    implementation 'com.pedropathing:tuning:1.0.0'
 
     // Command framework. Maintained fork of FTCLib; same class and method names,
     // package is com.seattlesolvers.solverslib. Do not add FTCLib alongside it.

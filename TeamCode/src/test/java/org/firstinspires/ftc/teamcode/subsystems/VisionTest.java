@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.fakes.FakeVisionCamera;
 import org.firstinspires.ftc.teamcode.fakes.LoopRunner;
@@ -30,7 +30,7 @@ class VisionTest {
     private static final double EPS = 1e-9;
 
     private static final class StubMotion implements MotionSource {
-        private Pose pose = new Pose();
+        private Pose pose = Pose.zero();
 
         @Override
         public Pose pose() {

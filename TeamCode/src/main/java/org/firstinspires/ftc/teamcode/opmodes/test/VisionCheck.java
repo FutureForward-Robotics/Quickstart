@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.test;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
@@ -91,9 +91,9 @@ public class VisionCheck extends ForwardOpMode {
             telemetry.addData(
                     "delta now",
                     "x %+.1f  y %+.1f  heading %+.1f deg",
-                    seen.getX() - odometry.getX(),
-                    seen.getY() - odometry.getY(),
-                    Math.toDegrees(Field.normalize(seen.getHeading() - odometry.getHeading())));
+                    seen.x() - odometry.x(),
+                    seen.y() - odometry.y(),
+                    Math.toDegrees(Field.normalize(seen.heading() - odometry.heading())));
         }
         telemetry.addData("hasTarget", vision.hasTarget());
         telemetry.addData("tags", vision.sample().tagCount());

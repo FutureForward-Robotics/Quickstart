@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.junit.jupiter.api.Test;
 
@@ -116,8 +116,8 @@ class WaypointTest {
     @Test
     void poseCarriesTheResolvedValues() {
         Waypoint w = Waypoint.red("score", 119.380, 128.800, 225);
-        assertEquals(144.0 - 119.380, w.pose(Alliance.BLUE).getX(), EPS);
-        assertEquals(119.380, w.pose(Alliance.RED).getX(), EPS);
+        assertEquals(144.0 - 119.380, w.pose(Alliance.BLUE).x(), EPS);
+        assertEquals(119.380, w.pose(Alliance.RED).x(), EPS);
     }
 
     /** Values from the 2025 TopRed12 / TopBlue12 paths, which were tuned separately. */

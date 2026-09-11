@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.field.Field;
 import org.firstinspires.ftc.teamcode.util.MotionSource;
@@ -86,8 +86,8 @@ public final class PoseFusion extends ForwardSubsystem {
             return;
         }
 
-        double errorX = seen.getX() - then.getX();
-        double errorY = seen.getY() - then.getY();
+        double errorX = seen.x() - then.x();
+        double errorY = seen.y() - then.y();
         lastErrorIn = Math.hypot(errorX, errorY);
         if (lastErrorIn > MAX_ERROR_IN) {
             rejections++;
@@ -95,14 +95,14 @@ public final class PoseFusion extends ForwardSubsystem {
             lastCaptureNanos = captureNanos;
             return;
         }
-        double errorHeading = Field.normalize(seen.getHeading() - then.getHeading());
+        double errorHeading = Field.normalize(seen.heading() - then.heading());
 
         Pose current = motion.pose();
         apply.accept(
                 new Pose(
-                        current.getX() + errorX * TRANSLATION_GAIN,
-                        current.getY() + errorY * TRANSLATION_GAIN,
-                        Field.normalize(current.getHeading() + errorHeading * HEADING_GAIN)));
+                        current.x() + errorX * TRANSLATION_GAIN,
+                        current.y() + errorY * TRANSLATION_GAIN,
+                        Field.normalize(current.heading() + errorHeading * HEADING_GAIN)));
         corrections++;
         applied = true;
         lastCaptureNanos = captureNanos;

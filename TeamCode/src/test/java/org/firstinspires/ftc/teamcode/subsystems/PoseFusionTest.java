@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.fakes.FakeVisionCamera;
 import org.firstinspires.ftc.teamcode.fakes.RobotTest;
@@ -29,7 +29,7 @@ class PoseFusionTest {
 
     /** Odometry the test drives directly, standing in for the drivetrain. */
     private static final class Odometry implements MotionSource {
-        Pose pose = new Pose();
+        Pose pose = Pose.zero();
 
         @Override
         public Pose pose() {
@@ -81,7 +81,7 @@ class PoseFusionTest {
 
         assertEquals(
                 100 + 4 * PoseFusion.TRANSLATION_GAIN,
-                odometry.pose.getX(),
+                odometry.pose.x(),
                 EPS,
                 "a snap would read as a velocity spike through Pedro's previousPose");
         assertEquals(1, fusion.corrections());
@@ -103,7 +103,7 @@ class PoseFusionTest {
 
         loop();
 
-        assertEquals(140, odometry.pose.getX(), 1e-6, "no correction: the frame agrees with x=100");
+        assertEquals(140, odometry.pose.x(), 1e-6, "no correction: the frame agrees with x=100");
         assertEquals(1, fusion.corrections());
     }
 
@@ -114,14 +114,14 @@ class PoseFusionTest {
         camera.set(seeing(new Pose(108, 100, 0), 0));
 
         loop();
-        double afterFirst = odometry.pose.getX();
+        double afterFirst = odometry.pose.x();
 
         // Same frame, one loop later: staleness grew, capture time did not move.
         advance(20);
         camera.set(seeing(new Pose(108, 100, 0), 20));
         loop();
 
-        assertEquals(afterFirst, odometry.pose.getX(), EPS, "counting one measurement twice");
+        assertEquals(afterFirst, odometry.pose.x(), EPS, "counting one measurement twice");
         assertEquals(1, fusion.corrections());
     }
 
@@ -133,7 +133,7 @@ class PoseFusionTest {
 
         loop();
 
-        assertEquals(100, odometry.pose.getX(), EPS, "a bad solve must not move the robot");
+        assertEquals(100, odometry.pose.x(), EPS, "a bad solve must not move the robot");
         assertEquals(0, fusion.corrections());
         assertEquals(1, fusion.rejections());
     }
@@ -147,10 +147,10 @@ class PoseFusionTest {
             advance(20);
             camera.set(seeing(new Pose(110, 100, 0), 0));
             loop();
-            assertTrue(odometry.pose.getX() <= 110 + EPS, "never past the measurement");
+            assertTrue(odometry.pose.x() <= 110 + EPS, "never past the measurement");
         }
 
-        assertEquals(110, odometry.pose.getX(), 0.01, "converged on the camera's pose");
+        assertEquals(110, odometry.pose.x(), 0.01, "converged on the camera's pose");
     }
 
     @Test
@@ -163,7 +163,7 @@ class PoseFusionTest {
 
         assertEquals(
                 Math.toRadians(30),
-                odometry.pose.getHeading(),
+                odometry.pose.heading(),
                 EPS,
                 "MegaTag2 returns the yaw it was given, so feeding it back is circular");
     }
@@ -176,7 +176,7 @@ class PoseFusionTest {
 
         loop();
 
-        assertEquals(100, odometry.pose.getX(), EPS);
+        assertEquals(100, odometry.pose.x(), EPS);
         assertEquals(0, fusion.corrections());
     }
 }

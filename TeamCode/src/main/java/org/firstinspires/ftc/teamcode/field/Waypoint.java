@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.field;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 /**
  * Named field pose, authored in red coordinates. Blue is derived with {@link Field#SYMMETRY}; call
@@ -94,7 +94,7 @@ public final class Waypoint {
 
     /** Inches from a robot pose to this waypoint on {@code alliance}. */
     public double distanceTo(Pose pose, Alliance alliance) {
-        return Math.hypot(x(alliance) - pose.getX(), y(alliance) - pose.getY());
+        return Math.hypot(x(alliance) - pose.x(), y(alliance) - pose.y());
     }
 
     /** Inches between the pinned blue value and the one {@link Field#SYMMETRY} would give. */

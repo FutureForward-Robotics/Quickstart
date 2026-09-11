@@ -53,4 +53,4 @@ python3 tools/plot_run.py --latest
 | `opmodes/test/` | Diagnostic OpModes used to check or tune one thing |
 | `field/` | Field geometry: waypoints, alliance mirroring, path building |
 | `util/` | Reusable helpers with no hardware of their own |
-| `pedroPathing/` | Pedro Pathing constants and tuning OpModes |
+| `pedroPathing/` | Pedro Pathing configuration, and the AutoTune tuners |

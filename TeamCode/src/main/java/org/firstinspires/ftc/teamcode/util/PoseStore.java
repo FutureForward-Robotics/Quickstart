@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 /** Carries the robot pose across an OpMode boundary. Stores primitives only. */
 public final class PoseStore {
@@ -14,9 +14,9 @@ public final class PoseStore {
 
     public static void save(Pose pose) {
         present = true;
-        x = pose.getX();
-        y = pose.getY();
-        heading = pose.getHeading();
+        x = pose.x();
+        y = pose.y();
+        heading = pose.heading();
     }
 
     public static boolean isPresent() {

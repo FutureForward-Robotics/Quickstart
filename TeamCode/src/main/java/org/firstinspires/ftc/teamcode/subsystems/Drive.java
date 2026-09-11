@@ -1,9 +1,10 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathBuilder;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.follower.ManualDrive;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.Command;
 import com.seattlesolvers.solverslib.command.FunctionalCommand;
@@ -11,6 +12,7 @@ import com.seattlesolvers.solverslib.command.StartEndCommand;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 
 import org.firstinspires.ftc.teamcode.field.Alliance;
+import org.firstinspires.ftc.teamcode.field.Field;
 import org.firstinspires.ftc.teamcode.field.Route;
 import org.firstinspires.ftc.teamcode.field.Waypoint;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -25,8 +27,8 @@ import java.util.function.DoubleSupplier;
 /**
  * Drivetrain wrapping Pedro's {@link Follower}.
  *
- * <p>Motion commands require this subsystem, call {@code breakFollowing()} when interrupted, and
- * carry a timeout. {@link #teleop} is the default command; a path command preempts it and the
+ * <p>Motion commands require this subsystem, stop the follower when interrupted, and carry a
+ * timeout. {@link #teleop} is the default command; a path command preempts it and the
  * scheduler restores it when the path ends.
  */
 public class Drive extends ForwardSubsystem implements MotionSource {
@@ -36,17 +38,20 @@ public class Drive extends ForwardSubsystem implements MotionSource {
 
     public static final long DEFAULT_TURN_TIMEOUT_MS = 3000;
 
+    /** A turn command finishes inside this heading error, in radians. */
+    public static final double TURN_TOLERANCE_RAD = Math.toRadians(2);
+
     private final Follower follower;
     private final List<DriveAssist> assists = new ArrayList<>();
 
     public Drive(HardwareMap hardwareMap, Pose startingPose) {
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startingPose);
+        follower.setPose(startingPose);
     }
 
     /** Resumes from the stored pose. Use in teleop, after auto. */
     public Drive(HardwareMap hardwareMap) {
-        this(hardwareMap, PoseStore.loadOr(new Pose()));
+        this(hardwareMap, PoseStore.loadOr(Pose.zero()));
     }
 
     /**
@@ -60,7 +65,7 @@ public class Drive extends ForwardSubsystem implements MotionSource {
     @Override
     public void sense() {
         follower.update();
-        PoseStore.save(follower.getPose());
+        PoseStore.save(follower.pose());
     }
 
     /** Empty; the follower wrote motor powers during {@link #sense()}. */
@@ -71,9 +76,9 @@ public class Drive extends ForwardSubsystem implements MotionSource {
     /** Reads the pose cached by {@code follower.update()}, so logging adds no hardware traffic. */
     @Override
     public void logSignals(RunLog log) {
-        log.addSignal("drive.x", () -> follower.getPose().getX());
-        log.addSignal("drive.y", () -> follower.getPose().getY());
-        log.addSignal("drive.headingDeg", () -> Math.toDegrees(follower.getPose().getHeading()));
+        log.addSignal("drive.x", () -> follower.pose().x());
+        log.addSignal("drive.y", () -> follower.pose().y());
+        log.addSignal("drive.headingDeg", () -> Math.toDegrees(follower.pose().heading()));
         log.addFlag("drive.busy", follower::isBusy);
         log.addSignal("drive.assists", () -> assists.size());
     }
@@ -82,18 +87,18 @@ public class Drive extends ForwardSubsystem implements MotionSource {
 
     @Override
     public Pose pose() {
-        return follower.getPose();
+        return follower.pose();
     }
 
     /** Field-frame velocity, inches/second, from the pose cached by {@link #sense()}. */
     @Override
     public double velocityX() {
-        return follower.getVelocity().getXComponent();
+        return follower.velocity().vx;
     }
 
     @Override
     public double velocityY() {
-        return follower.getVelocity().getYComponent();
+        return follower.velocity().vy;
     }
 
     /** Re-seeds odometry, for squaring up on a wall mid-match. */
@@ -102,7 +107,7 @@ public class Drive extends ForwardSubsystem implements MotionSource {
     }
 
     public double headingRad() {
-        return follower.getPose().getHeading();
+        return follower.pose().heading();
     }
 
     public boolean isBusy() {
@@ -115,12 +120,7 @@ public class Drive extends ForwardSubsystem implements MotionSource {
 
     /** Starts a {@link Route} on this drivetrain. */
     public Route route(Alliance alliance, Waypoint start) {
-        return Route.from(follower, alliance, start);
-    }
-
-    /** For path geometry {@link Route} cannot express. */
-    public PathBuilder pathBuilder() {
-        return new PathBuilder(follower);
+        return Route.from(alliance, start);
     }
 
     // ---------------------------------------------------------------- commands
@@ -136,36 +136,43 @@ public class Drive extends ForwardSubsystem implements MotionSource {
     public Command teleop(
             DoubleSupplier forward, DoubleSupplier strafe, DoubleSupplier turn, boolean robotCentric) {
         return new FunctionalCommand(
-                follower::startTeleopDrive,
+                () -> follower.manual(DrivePowers.zero()),
                 () -> {
                     DriveInput input =
                             new DriveInput(
                                     forward.getAsDouble(), strafe.getAsDouble(), turn.getAsDouble());
                     for (int i = 0; i < assists.size(); i++) {
-                        input = assists.get(i).apply(input, follower.getPose());
+                        input = assists.get(i).apply(input, follower.pose());
                     }
-                    follower.setTeleOpDrive(input.forward, input.strafe, input.turn, robotCentric);
+                    DrivePowers powers = new DrivePowers(input.forward, input.strafe, input.turn);
+                    follower.manual(
+                            robotCentric
+                                    ? powers
+                                    : ManualDrive.fieldCentric(powers, follower.pose().heading()));
                 },
                 interrupted -> {},
                 () -> false,
                 this);
     }
 
-    public Command follow(PathChain path) {
-        return follow(path, 1.0, DEFAULT_PATH_TIMEOUT_MS);
+    public Command follow(Path path) {
+        return follow(path, DEFAULT_PATH_TIMEOUT_MS);
     }
 
-    public Command follow(PathChain path, double maxPower) {
-        return follow(path, maxPower, DEFAULT_PATH_TIMEOUT_MS);
-    }
-
-    public Command follow(PathChain path, double maxPower, long timeoutMs) {
+    /**
+     * Follows a path, stopping the follower if the command is interrupted.
+     *
+     * <p>To cap one leg's speed, modify the path rather than this command: {@code
+     * path.with(Constants.algorithmConfig.maxPathSpeed.at(20.0))} limits it to 20 inches/second and
+     * restores the previous limit when the path ends.
+     */
+    public Command follow(Path path, long timeoutMs) {
         return new FunctionalCommand(
-                        () -> follower.followPath(path, maxPower, true),
+                        () -> follower.follow(path),
                         () -> {},
                         interrupted -> {
                             if (interrupted) {
-                                follower.breakFollowing();
+                                follower.stop();
                             }
                         },
                         () -> !follower.isBusy(),
@@ -177,16 +184,19 @@ public class Drive extends ForwardSubsystem implements MotionSource {
         return turnTo(headingDeg, DEFAULT_TURN_TIMEOUT_MS);
     }
 
+    /**
+     * Turns in place by holding the current position with a new heading. Finishes inside {@link
+     * #TURN_TOLERANCE_RAD}, since holding a pose never completes on its own.
+     */
     public Command turnTo(double headingDeg, long timeoutMs) {
+        double target = Math.toRadians(headingDeg);
         return new FunctionalCommand(
-                        () -> follower.turnTo(Math.toRadians(headingDeg)),
+                        () -> follower.hold(pose().withHeading(target)),
                         () -> {},
-                        interrupted -> {
-                            if (interrupted) {
-                                follower.breakFollowing();
-                            }
-                        },
-                        () -> !follower.isBusy(),
+                        interrupted -> follower.stop(),
+                        () ->
+                                Math.abs(Field.normalize(target - follower.pose().heading()))
+                                        < TURN_TOLERANCE_RAD,
                         this)
                 .withTimeout(timeoutMs);
     }
@@ -194,9 +204,9 @@ public class Drive extends ForwardSubsystem implements MotionSource {
     /** Holds a pose. Never finishes on its own; race it or let the driver take the drivetrain. */
     public Command holdAt(Waypoint waypoint, Alliance alliance) {
         return new FunctionalCommand(
-                () -> follower.holdPoint(waypoint.pose(alliance)),
+                () -> follower.hold(waypoint.pose(alliance)),
                 () -> {},
-                interrupted -> follower.breakFollowing(),
+                interrupted -> follower.stop(),
                 () -> false,
                 this);
     }
@@ -204,7 +214,7 @@ public class Drive extends ForwardSubsystem implements MotionSource {
     /** Stops following. */
     public Command halt() {
         return new FunctionalCommand(
-                follower::breakFollowing, () -> {}, interrupted -> {}, () -> true, this);
+                follower::stop, () -> {}, interrupted -> {}, () -> true, this);
     }
 
     /**
@@ -234,7 +244,7 @@ public class Drive extends ForwardSubsystem implements MotionSource {
         DriveAssist assist = Assists.steadyShot(() -> heldHeading[0], headingKp, speed);
         return new StartEndCommand(
                 () -> {
-                    heldHeading[0] = pose().getHeading();
+                    heldHeading[0] = pose().heading();
                     if (!assists.contains(assist)) {
                         assists.add(assist);
                     }

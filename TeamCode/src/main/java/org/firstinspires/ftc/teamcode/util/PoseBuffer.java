@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.teamcode.field.Field;
 
@@ -43,9 +43,9 @@ public final class PoseBuffer {
     /** Records a pose. Call once per loop, with a monotonic clock. */
     public void add(long atNanos, Pose pose) {
         nanos[next] = atNanos;
-        xs[next] = pose.getX();
-        ys[next] = pose.getY();
-        headings[next] = pose.getHeading();
+        xs[next] = pose.x();
+        ys[next] = pose.y();
+        headings[next] = pose.heading();
         next = (next + 1) % nanos.length;
         if (count < nanos.length) {
             count++;
